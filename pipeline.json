@@ -1,0 +1,9 @@
+{
+  "plan-architect": "flash",
+  "stage-architect": "flash",
+  "plan-checker": "flash",
+  "implementer": "flash",
+  "reviewer": "flash",
+  "validator": "flash",
+  "debugger": "flash"
+}
