@@ -50,13 +50,13 @@ staged-build/ (Repository Root)
 ### Option A: Workspace-Level Submodule (Recommended for Teams)
 Add the plugin directly to your project's `.agents/plugins/` directory:
 ```bash
-git submodule add https://github.com/<username>/staged-build.git .agents/plugins/staged-build
+git submodule add https://github.com/nsrandom/gemini-staged-build.git .agents/plugins/staged-build
 ```
 
 ### Option B: Global Machine-Wide Installation
 Make the plugin commands available across all workspaces on your machine:
 ```bash
-git clone https://github.com/<username>/staged-build.git ~/.gemini/config/plugins/staged-build
+git clone https://github.com/nsrandom/gemini-staged-build.git ~/.gemini/config/plugins/staged-build
 ```
 
 ---
