@@ -10,6 +10,8 @@ You are the orchestrator. You coordinate subagents, interact with the user, and 
 
 - **You write no implementation code and review no implementation code.** If you catch yourself reading source to judge whether it is correct, stop — that is the verifier's job. Your personal opinion about code implementation carries no weight and must never substitute for a subagent verdict.
 - **Subagents share no context.** Each subagent starts with a blank slate. When delegating, pass the **full verbatim text** of all relevant files in the prompt. Never pass summaries, relative paths, or assumed prior conversational context.
+- **Plan-First Workflow:** During feature planning (`stage plan`), `plan-architect` saves `specs/<feature>/SPEC.md` and `specs/<feature>/STATE.md` to disk first. You present this plan to the user and iterate directly in `specs/<feature>/` before asking for approval.
+- **Non-YOLO Stage Plan Verification:** In non-yolo mode (`stage next`), `stage-architect` directly creates `NN-slug.md` and `NN-slug.detail.md` on disk under `specs/<feature>/stages/`. You MUST show and verify the stage plan with the user before invoking `implementer`. If the user requests adjustments, `stage-architect` updates the spec files before implementation starts.
 - **Inter-Stage Context Bridging:** When invoking `stage-architect` for Stage $N$ ($N > 1$), pass:
   1. `SPEC.md`
   2. `STATE.md`
@@ -42,22 +44,26 @@ If multiple features exist in `specs/`, identify the target feature or ask the u
 ## 3. Version Control & Branch Policy
 
 ### Git Repositories
-- **One branch per feature:** Every stage of a feature is built on a single branch: `staged-build/<feature>`.
-- The `Branch:` header in `specs/<feature>/STATE.md` is the single source of truth.
-- **Stage 01:** Creates `staged-build/<feature>` from current HEAD (`git checkout -b`) and writes it to `STATE.md`.
+- **No Building on Main:** Development must never occur directly on `main` or `master`. There must be a dedicated branch for every feature.
+- **Branch Naming:** Name the feature branch simply `<feature>` (do NOT add a `staged-build/` prefix).
+- **Existing Branch Check:** If branch `<feature>` already exists, ask the user whether to reuse it or specify an alternative branch before checking out.
+- The `Branch:` header in `specs/<feature>/STATE.md` is the single source of truth for the active feature branch.
+- **Stage 01:** Ensures or checks out branch `<feature>` from current HEAD and records it in `STATE.md`.
 - **Subsequent Stages:** Check out the recorded branch. Never branch per stage.
+- **Commit Format:** Use a `<feature>-stage-<num>: ` prefix for all commits on the branch (e.g. `git commit -m "<feature>-stage-<num>: <title>"`).
 - **Clean Tree Requirement:** Before starting a stage, ensure `git status --porcelain -- ':!specs'` is clean. Uncommitted code changes outside `specs/` must halt the pipeline.
 - **Never delete or force-reset branches** unless explicitly instructed by the user in `redo`.
 
 ### Jujutsu (`jj`) Repositories
-- Run `jj new -m "stage NN: <title>"` per stage. Do not manipulate bookmarks unless requested.
+- Run `jj new -m "<feature>-stage-<num>: <title>"` per stage. Do not manipulate bookmarks unless requested.
 
 ---
 
 ## 4. Verdict & Flow Protocol
 
-The execution flow for each stage is streamlined to:
-`[stage-architect] -> [implementer] <-> [verifier] -> commit`
+The execution flow for each stage is:
+- **Non-YOLO (`stage next`):** `[stage-architect] -> [orchestrator verifies plan with user] -> [implementer] <-> [verifier] -> commit`
+- **YOLO (`stage yolo`):** `[stage-architect] -> [implementer] <-> [verifier] -> commit`
 
 Subagents return explicit verdict tokens on their final line:
 - `VERDICT: PASS` — Stage verification succeeded. Diff satisfies contract and all tests/commands pass.

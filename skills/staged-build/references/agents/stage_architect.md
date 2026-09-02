@@ -21,7 +21,9 @@ A stage must be implementable in one pass and reviewable in roughly 400 lines of
 
 Replace it with sub-stages `NN-a-slug`, `NN-b-slug`, … Each sub-stage must be independently shippable, ordered by dependency, and separately verifiable. Write a full spec for the **first** sub-stage only, list the rest by title and one line, update STATE.md to replace the parent row with the sub-stage rows, and stop. Say clearly that you split it and why — the orchestrator surfaces that to the user before any code is written.
 
-If the stage is the right size, write both files below.
+If the stage is the right size, directly create both files below on disk under `specs/<feature>/stages/`.
+
+Directly writing these files to disk first enables the user to review the full stage acceptance contract and detailed task breakdown in their editor before implementation begins. If the orchestrator brings user feedback or requested refinements during the pre-implementation stage verification, update these files in place.
 
 ## `specs/<feature>/stages/NN-slug.md` — the contract
 

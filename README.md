@@ -44,7 +44,7 @@ staged-build/ (Repository Root)
 
 ---
 
-## Installation
+## Installation & Updates
 
 ### Option A: Workspace-Level Submodule (Recommended for Teams)
 Add the plugin directly to your project's `.agents/plugins/` directory:
@@ -52,11 +52,44 @@ Add the plugin directly to your project's `.agents/plugins/` directory:
 git submodule add https://github.com/nsrandom/gemini-staged-build.git .agents/plugins/staged-build
 ```
 
+#### Updating Submodule
+To pull the latest updates for an existing submodule:
+```bash
+git submodule update --remote .agents/plugins/staged-build
+```
+
+#### Reinstalling Submodule
+If you want to perform a clean reinstall of the workspace submodule:
+```bash
+git submodule deinit -f .agents/plugins/staged-build 2>/dev/null || true
+git rm -f .agents/plugins/staged-build 2>/dev/null || true
+rm -rf .git/modules/.agents/plugins/staged-build .agents/plugins/staged-build
+git submodule add https://github.com/nsrandom/gemini-staged-build.git .agents/plugins/staged-build
+```
+
+---
+
 ### Option B: Global Machine-Wide Installation
 Make the plugin commands available across all workspaces on your machine:
 ```bash
 git clone https://github.com/nsrandom/gemini-staged-build.git ~/.gemini/config/plugins/staged-build
 ```
+
+#### Updating Global Installation
+To pull the latest updates to your global installation:
+```bash
+cd ~/.gemini/config/plugins/staged-build && git pull
+```
+
+#### Reinstalling Global Installation
+To perform a clean reinstall:
+```bash
+rm -rf ~/.gemini/config/plugins/staged-build
+git clone https://github.com/nsrandom/gemini-staged-build.git ~/.gemini/config/plugins/staged-build
+```
+
+> [!TIP]
+> After updating or reinstalling, restart or reload your Antigravity / IDE session to ensure newly updated plugin manifests, subagent prompts, rules, and skills take effect.
 
 ---
 
@@ -66,30 +99,33 @@ git clone https://github.com/nsrandom/gemini-staged-build.git ~/.gemini/config/p
 ```text
 stage plan "Add OAuth2 authentication with refresh tokens"
 ```
-Initiates a 2-pass interactive planning conversation:
-1. `plan-architect` analyzes the codebase, flags unknowns (Stage 01 investigation), and presents a proposal.
-2. Interactive refinement via `ask_question` and dialogue.
-3. On approval, writes `specs/<feature>/SPEC.md` and `specs/<feature>/STATE.md`.
+Initiates an interactive, plan-first conversation:
+1. `plan-architect` analyzes the codebase, flags unknowns (Stage 01 investigation), and directly writes `specs/<feature>/SPEC.md` and `specs/<feature>/STATE.md` to disk first.
+2. The orchestrator presents the saved plan to the user for review.
+3. User feedback and answers to open questions are updated in place directly in `specs/<feature>/` until approved.
 
 ### 2. Execute Next Stage
 ```text
 stage next
 ```
 Advances the first pending stage:
-1. Verifies clean git working tree and ensures `staged-build/<feature>` branch checkout.
-2. `stage-architect` creates `NN-slug.md` (contract) and `NN-slug.detail.md` (spec), grounded by prior stage report summaries for Stage $N > 1$.
-3. `implementer` writes the code.
-4. `verifier` inspects the diff against contract criteria and runs verification commands & project tests.
-5. If verification detects issues, `implementer` performs self-healing fixes (max 2 cycles).
-6. Generates `NN-slug.report.md`, marks stage `done`, and stops.
+1. Verifies clean git working tree and ensures checkout of feature branch `<feature>` (never builds on `main`; prompts user to confirm reuse if `<feature>` branch already exists).
+2. `stage-architect` directly creates `NN-slug.md` (contract) and `NN-slug.detail.md` (spec) on disk under `specs/<feature>/stages/`, grounded by prior stage report summaries for Stage $N > 1$.
+3. In non-yolo mode, the orchestrator displays and verifies the stage plan with the user before delegating to `implementer`.
+4. `implementer` writes the code.
+5. `verifier` inspects the diff against contract criteria and runs verification commands & project tests.
+6. If verification detects issues, `implementer` performs self-healing fixes (max 2 cycles).
+7. Generates `NN-slug.report.md`, marks stage `done`, suggests commit message (`<feature>-stage-<num>: <title>`), and stops.
 
 ### 3. Run Unattended (YOLO Mode)
 ```text
 stage yolo
 ```
 Runs every stage end-to-end:
+- Ensures development occurs on `<feature>` branch (confirms reuse if branch already exists).
+- `stage-architect` writes stage specs directly to disk.
 - Autonomously decides minor questions and logs them to `specs/<feature>/DECISIONS.md`.
-- Automatically commits passing stages (`stage NN: <title>`).
+- Automatically commits passing stages (`<feature>-stage-<num>: <title>`).
 - Prunes previous stage implementation details and logs between stages to maintain a lightweight prompt context.
 - Halts only for major architectural decisions, unrecoverable failures, or `REPLANNED` stage contracts.
 - Concludes with an interactive decision review.

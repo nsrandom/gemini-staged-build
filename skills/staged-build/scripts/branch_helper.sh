@@ -7,23 +7,62 @@ cmd="${1:-status}"
 feature="${2:-}"
 
 case "$cmd" in
+  branch-exists)
+    if [ -z "$feature" ]; then
+      echo "Error: feature name required" >&2
+      exit 1
+    fi
+    if git show-ref --verify --quiet "refs/heads/${feature}"; then
+      echo "EXISTS"
+      exit 0
+    else
+      echo "NOT_FOUND"
+      exit 1
+    fi
+    ;;
+
   ensure-branch)
     if [ -z "$feature" ]; then
       echo "Error: feature name required" >&2
       exit 1
     fi
-    expected_branch="staged-build/${feature}"
+    if [ "$feature" = "main" ] || [ "$feature" = "master" ]; then
+      echo "Error: Cannot build directly on main or master. Specify a feature branch name." >&2
+      exit 1
+    fi
+
+    expected_branch="${feature}"
     current_branch=$(git branch --show-current 2>/dev/null || echo "")
-    
+    reuse_flag="${3:-}"
+
     if git show-ref --verify --quiet "refs/heads/${expected_branch}"; then
-      if [ "$current_branch" != "$expected_branch" ]; then
-        git checkout "$expected_branch"
+      if [ "$reuse_flag" = "--reuse" ] || [ "$current_branch" = "$expected_branch" ]; then
+        if [ "$current_branch" != "$expected_branch" ]; then
+          git checkout "$expected_branch"
+        fi
+        echo "Checked out existing branch: ${expected_branch}"
+      else
+        echo "BRANCH_EXISTS: Branch '${expected_branch}' already exists. Ask user to confirm reuse."
+        exit 2
       fi
-      echo "Checked out existing branch: ${expected_branch}"
     else
       git checkout -b "$expected_branch"
       echo "Created and checked out new branch: ${expected_branch}"
     fi
+    ;;
+
+  commit-stage)
+    if [ -z "$feature" ] || [ -z "${3:-}" ] || [ -z "${4:-}" ]; then
+      echo "Usage: $0 commit-stage <feature> <stage_num> <message>" >&2
+      exit 1
+    fi
+    stage_num="$3"
+    shift 3
+    msg="$*"
+    commit_msg="${feature}-stage-${stage_num}: ${msg}"
+    git add -A
+    git commit -m "$commit_msg"
+    echo "Committed: $commit_msg"
     ;;
 
   get-base)
@@ -55,7 +94,7 @@ case "$cmd" in
     ;;
 
   *)
-    echo "Usage: $0 {ensure-branch <feature>|get-base|get-diff <base_commit>|clean-check}"
+    echo "Usage: $0 {branch-exists <feature>|ensure-branch <feature> [--reuse]|commit-stage <feature> <num> <msg>|get-base|get-diff <base_commit>|clean-check}"
     exit 1
     ;;
 esac

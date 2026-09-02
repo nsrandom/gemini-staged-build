@@ -2,6 +2,27 @@
 
 All notable changes to the `staged-build` plugin will be documented in this file.
 
+## [1.2.0] - 2026-09-02
+
+### Plan-First Architecture & In-Place Iteration
+- **Direct On-Disk Plan Creation:** `plan-architect` now directly writes `specs/<feature>/SPEC.md` and `specs/<feature>/STATE.md` to disk upon initial goal analysis rather than using a fileless proposal pass.
+- **Pre-Approval Plan Review:** The orchestrator displays the saved plan to the user for review. User feedback and answers to open questions are updated in place in `specs/<feature>/` before approval.
+
+### Non-YOLO Stage Plan Verification
+- **Direct On-Disk Stage Spec Creation:** `stage-architect` directly creates `NN-slug.md` and `NN-slug.detail.md` on disk under `specs/<feature>/stages/` first.
+- **User Review Before Implementation:** In non-yolo mode (`stage next`), the orchestrator shows and verifies the stage plan with the user prior to invoking `implementer`. Any user refinements update the stage specs in place before code is written.
+
+### Feature Branch & Commit Conventions
+- **No Building on Main:** Enforced policy preventing development directly on `main` or `master`.
+- **Simplified Branch Naming:** Feature branches are now named simply `<feature>` (dropping the `staged-build/` prefix).
+- **Existing Branch Confirmation:** When preparing the branch, the orchestrator detects if `<feature>` already exists and asks the user whether to reuse it before proceeding.
+- **Standardized Commit Format:** All commits on the feature branch use the `<feature>-stage-<num>: ` prefix (e.g., `<feature>-stage-<num>: <title>`).
+- **Updated `branch_helper.sh`:** Added `branch-exists`, `commit-stage`, and branch reuse checking flag (`--reuse`) with guards against `main`/`master`.
+
+### Documentation & Maintenance
+- **Reinstallation & Update Guide:** Added comprehensive instructions to `README.md` on how to pull updates or perform clean reinstalls for both workspace-level submodules and global installations, including post-update session reload guidance.
+- **Version Bump:** Bumped plugin version to `1.2.0` in `plugin.json`.
+
 ## [1.1.0] - 2026-09-02
 
 ### Architecture & Pipeline Streamlining
