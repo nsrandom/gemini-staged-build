@@ -62,8 +62,10 @@ def resolve_context():
 
     # 3. Pipeline Routing Config
     workspace_pipeline = os.path.join(".agents", "pipeline.json")
-    plugin_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    plugin_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
     plugin_pipeline = os.path.join(plugin_dir, "pipeline.json")
+    if not os.path.exists(plugin_pipeline) and os.path.exists("pipeline.json"):
+        plugin_pipeline = "pipeline.json"
 
     if os.path.exists(workspace_pipeline):
         try:

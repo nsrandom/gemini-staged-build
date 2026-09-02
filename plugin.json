@@ -1,8 +1,8 @@
 {
   "name": "staged-build",
   "displayName": "Staged Build",
-  "description": "Staged, multi-model autonomous & supervised build pipeline: plan, specify, check, implement, review, validate, and debug.",
-  "version": "1.0.0",
+  "description": "Staged, multi-model autonomous & supervised build pipeline: plan, specify, implement, and verify.",
+  "version": "1.1.0",
   "author": {
     "name": "Asif"
   },

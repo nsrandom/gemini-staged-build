@@ -1,15 +1,16 @@
 # Antigravity Staged Build Plugin
 
-A production-ready Google Antigravity and Antigravity CLI plugin that orchestrates development as a staged, multi-model pipeline with strict separation of concerns, independent falsification, and black-box verification.
+A production-ready Google Antigravity and Antigravity CLI plugin that orchestrates development as a streamlined, staged, multi-model pipeline with strict separation of concerns, independent verification, and self-healing execution.
 
 ---
 
 ## Key Features
 
-- **Progressive Specification:** High-level goals are architected into independently shippable stages ($\le 400$ diff lines each), and individual stage specs are written only after prior stages land.
-- **Pre-Implementation Falsification:** The `plan-checker` agent validates all signatures, reachability, criteria coverage, and verification commands against the live codebase before an implementer writes any code.
-- **Independent Black-Box Validation:** The `validator` agent is provided **ONLY the acceptance contract (`NN-slug.md`)** with zero inherited bias, verifying actual runtime behavior and test suite execution.
-- **Configurable Multi-Model Routing:** Dynamically routes subagents to model tiers configured per role in `pipeline.json`.
+- **Progressive Specification:** High-level goals are architected into independently shippable stages ($\le 400$ diff lines each). Individual stage specs are written progressively and grounded in concise summaries of landed stages.
+- **Unified Diff & Runtime Verification:** The `verifier` agent inspects the stage diff against acceptance contract criteria while actively executing verification commands and the project test suite via `run_command`.
+- **Implementer Self-Healing:** Findings from failed verification runs route directly back to `implementer` for targeted root-cause self-healing, eliminating intermediary debugging hops.
+- **Inter-Stage Context Bridging & Pruning:** Eliminates token bloat by pruning deep step details and raw diffs between stages, carrying forward only concise stage report summaries (~300–500 tokens).
+- **Configurable Multi-Model Routing:** Dynamically routes subagents to model tiers configured per role in `pipeline.json` (defaults to `flash` across all roles for high speed and minimal latency).
 - **Supervised & Autonomous Modes:** Run one stage at a time with `stage next`, or execute entire feature plans end-to-end with `stage yolo`.
 
 ---
@@ -19,6 +20,7 @@ A production-ready Google Antigravity and Antigravity CLI plugin that orchestrat
 ```text
 staged-build/ (Repository Root)
 ├── .gitignore                               # Ignore patterns
+├── CHANGELOG.md                             # Release notes & version history
 ├── plugin.json                              # Plugin manifest
 ├── pipeline.json                            # Model routing configuration
 ├── README.md                                # This documentation
@@ -36,11 +38,8 @@ staged-build/ (Repository Root)
             └── agents/                      # Specialized subagent prompt definitions
                 ├── plan_architect.md
                 ├── stage_architect.md
-                ├── plan_checker.md
                 ├── implementer.md
-                ├── reviewer.md
-                ├── validator.md
-                └── debugger.md
+                └── verifier.md
 ```
 
 ---
@@ -78,12 +77,11 @@ stage next
 ```
 Advances the first pending stage:
 1. Verifies clean git working tree and ensures `staged-build/<feature>` branch checkout.
-2. `stage-architect` creates `NN-slug.md` (contract) and `NN-slug.detail.md` (spec).
-3. `plan-checker` verifies whole stage plan and all `[large]` steps.
-4. `implementer` writes the code.
-5. `reviewer` reviews diff against contract.
-6. `validator` runs black-box verification with isolated contract.
-7. Generates `NN-slug.report.md`, marks stage `done`, and stops.
+2. `stage-architect` creates `NN-slug.md` (contract) and `NN-slug.detail.md` (spec), grounded by prior stage report summaries for Stage $N > 1$.
+3. `implementer` writes the code.
+4. `verifier` inspects the diff against contract criteria and runs verification commands & project tests.
+5. If verification detects issues, `implementer` performs self-healing fixes (max 2 cycles).
+6. Generates `NN-slug.report.md`, marks stage `done`, and stops.
 
 ### 3. Run Unattended (YOLO Mode)
 ```text
@@ -92,7 +90,8 @@ stage yolo
 Runs every stage end-to-end:
 - Autonomously decides minor questions and logs them to `specs/<feature>/DECISIONS.md`.
 - Automatically commits passing stages (`stage NN: <title>`).
-- Halts only for major architectural decisions or pipeline errors.
+- Prunes previous stage implementation details and logs between stages to maintain a lightweight prompt context.
+- Halts only for major architectural decisions, unrecoverable failures, or `REPLANNED` stage contracts.
 - Concludes with an interactive decision review.
 
 ### 4. Check Status
@@ -113,14 +112,23 @@ Safely resets current stage modifications and restarts execution.
 
 Subagent routing is stored in `pipeline.json`. To override routing for a specific project, create `.agents/pipeline.json` in your project root.
 
+```json
+{
+  "plan-architect": "flash",
+  "stage-architect": "flash",
+  "implementer": "flash",
+  "verifier": "flash"
+}
+```
+
 The supported model options for each role are:
-- `pro`: Advanced reasoning model tier for architecture, plan checking, code review, and root-cause debugging.
-- `flash`: Fast, high-throughput model tier for implementation and test execution.
-- `inherit`: Inherits the active model currently selected in your parent session. When you select a specific model version (such as Gemini 3.7 Flash) in your chat or environment settings, any role set to `inherit` will run with that exact model.
+- `flash`: Fast, cost-effective, high-throughput model tier (default for all roles).
+- `pro`: Advanced reasoning model tier for complex planning or heavy architectural reviews.
+- `flash_lite`: Lightweight tier for fast lookups.
+- `inherit`: Inherits the active model currently selected in your parent session.
 
 ---
 
 ## License
 
 MIT
-

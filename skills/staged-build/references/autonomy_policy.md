@@ -1,6 +1,6 @@
 # Autonomy Policy & Decision Logging
 
-In unattended execution (`/staged-build:yolo`), the orchestrator drives all stages end-to-end without pausing between stages. Every judgement call is categorized as either **Major** (stops execution) or **Minor** (decided autonomously and logged).
+In unattended execution (`stage yolo`), the orchestrator drives all stages end-to-end without pausing between stages. Every judgement call is categorized as either **Major** (stops execution) or **Minor** (decided autonomously and logged).
 
 ---
 
@@ -17,10 +17,8 @@ The pipeline stops immediately. The orchestrator explains the exact blocker, pre
 - **Pipeline Failures:**
   - Implementer halted rather than guessed.
   - Stage-architect split the stage or flagged codebase conflicts.
-  - Debugger returned `REPLANNED`.
-  - Plan check fails after 2 revision cycles.
-  - Review fails after 2 debug cycles.
-  - Validation fails after 2 debug cycles.
+  - Implementer returned `REPLANNED`.
+  - Verification fails after 2 fix $\leftrightarrow$ verify cycles (`implementer` $\leftrightarrow$ `verifier`).
   - Stage marked `blocked`.
 
 ---
@@ -58,14 +56,14 @@ The orchestrator is the sole writer of `DECISIONS.md`. Subagents output their de
 ```markdown
 # Decisions — <feature>
 
-Decisions taken without asking during `/staged-build:yolo`. Each is meant to be cheap to change; the "Change it here" line says where.
+Decisions taken without asking during `stage yolo`. Each is meant to be cheap to change; the "Change it here" line says where.
 
 Status is `unconfirmed`, `confirmed`, or `changed → stage NN`.
 
 ## D01 — <Short Title>
 
 - **Stage:** NN-slug
-- **Decided by:** implementer | stage-architect | debugger | orchestrator
+- **Decided by:** implementer | stage-architect | orchestrator
 - **The call:** <what was genuinely undecided>
 - **Decision:** <what was chosen>
 - **Instead of:** <alternatives considered>
@@ -78,7 +76,7 @@ Status is `unconfirmed`, `confirmed`, or `changed → stage NN`.
 
 ## 5. Subagent Unattended Addendum
 
-When running under `yolo`, append this exact block to the prompts for `stage-architect`, `implementer`, and `debugger`:
+When running under `yolo`, append this exact block to the prompts for `stage-architect` and `implementer`:
 
 ```markdown
 ---
@@ -109,4 +107,4 @@ If none were made, write the heading followed by `none`.
 ```
 
 > [!IMPORTANT]
-> Never send this addendum or the decision log to `plan-checker`, `reviewer`, or `validator`. Those roles act as independent judges.
+> Never send this addendum or the decision log to `verifier`. The verifier acts as an independent judge.
