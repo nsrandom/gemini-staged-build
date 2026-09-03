@@ -2,6 +2,27 @@
 
 All notable changes to the `staged-build` plugin will be documented in this file.
 
+## [1.3.0] - 2026-09-03
+
+### Comprehensive Test Coverage & Project Test Placement
+- **Main Project Tests Standard:** `stage-architect` must ensure that each stage has comprehensive test coverage. Tests that are useful for the long term must be placed in the project's main tests directory (e.g. `tests/`, creating it if needed).
+- **Test Validation by Verifier:** `verifier` checks test placement in the main project tests directory and executes project test runners.
+
+### Ephemeral Gitignored Scratchpad
+- **`specs/<feature>/scratchpad/` Isolation:** Added an isolated scratchpad directory for one-off verification code, experimental tests, and temporary test databases.
+- **Internal Access Allowed:** Code in `scratchpad/` may access internal data structures not available as public API, with the explicit assumption that it will be deleted during cleanup.
+- **Gitignore Enforcement:** Enforced `specs/**/scratchpad/` in `.gitignore` during `stage plan` and branch setup via `branch_helper.sh ensure-gitignore`.
+
+### Universal Minor Decision Logging
+- **`DECISIONS.md` in `stage next` & `stage yolo`:** Minor decisions are decided autonomously into single named places (constants, defaults, config keys) and recorded in `specs/<feature>/DECISIONS.md` across both `stage next` and `stage yolo` modes. This prevents minor choices from interrupting implementation flow while preserving a clear audit trail for subsequent review.
+- **Enhanced Decision Schema:** Added `Tradeoffs & Implications` and updated status tracking (`unconfirmed`, `confirmed`, `rejected`, `deferred`, `modified`).
+
+### Interactive `stage cleanup` Command & Decision Remediation
+- **Interactive Decision Walkthrough:** `stage cleanup` walks through decisions one by one, explaining the problem, the decision taken, and tradeoffs/alternatives/implications.
+- **5 User Action Paths:** The user may `confirm`, `reject the decision`, `defer`, `ask a follow up question`, or `suggest a modification`.
+- **Deferred Resolution Queue:** Deferred decisions are systematically revisited at the end of the walkthrough loop.
+- **Automated Cleanup Stage Design & Execution:** If any decisions were rejected or modified, or if `specs/<feature>/scratchpad/` exists, the orchestrator automatically creates a cleanup stage in `STATE.md` and immediately starts its design and implementation (`stage-architect` $\to$ `implementer` $\leftrightarrow$ `verifier` $\to$ commit) to apply remediations, delete scratchpads, and ensure all tests pass.
+
 ## [1.2.0] - 2026-09-02
 
 ### Plan-First Architecture & In-Place Iteration

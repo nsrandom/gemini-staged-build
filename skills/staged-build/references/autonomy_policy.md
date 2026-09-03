@@ -1,6 +1,6 @@
 # Autonomy Policy & Decision Logging
 
-In unattended execution (`stage yolo`), the orchestrator drives all stages end-to-end without pausing between stages. Every judgement call is categorized as either **Major** (stops execution) or **Minor** (decided autonomously and logged).
+In both supervised stage execution (`stage next`) and unattended execution (`stage yolo`), every judgement call is categorized as either **Major** (stops execution) or **Minor** (decided autonomously, placed into a single named place, and logged). Logging minor decisions in `stage next` allows the implementation flow to proceed smoothly without stopping on minor choices, while leaving a clear audit trail for deferred review and adjustment via `stage cleanup`.
 
 ---
 
@@ -25,7 +25,7 @@ The pipeline stops immediately. The orchestrator explains the exact blocker, pre
 
 ## 2. Minor Decisions (Decide, Log, & Continue)
 
-Decided autonomously without interrupting the user.
+Decided autonomously without interrupting the user during both `stage next` and `stage yolo`.
 
 - **Local Naming:** Internal variables, helper function names, local types, test names, slugs.
 - **Existing Patterns:** Placement within existing project directories and module structures.
@@ -49,24 +49,25 @@ Do not over-engineer abstractions, plugin interfaces, or configuration framework
 
 ## 4. Decision Log (`specs/<feature>/DECISIONS.md`)
 
-The orchestrator is the sole writer of `DECISIONS.md`. Subagents output their decisions in an `Autonomous decisions` section, and the orchestrator transcribes them immediately upon receiving them.
+The orchestrator is the sole writer of `DECISIONS.md`. Subagents output their decisions in an `Autonomous decisions` section, and the orchestrator transcribes them immediately upon receiving them in both `stage next` and `stage yolo`.
 
 ### Schema
 
 ```markdown
 # Decisions — <feature>
 
-Decisions taken without asking during `stage yolo`. Each is meant to be cheap to change; the "Change it here" line says where.
+Decisions taken without asking during development (`stage next` or `stage yolo`). Each is meant to be cheap to change; the "Change it here" line says where.
 
-Status is `unconfirmed`, `confirmed`, or `changed → stage NN`.
+Status is `unconfirmed`, `confirmed`, `rejected`, `deferred`, or `modified: <details>`.
 
 ## D01 — <Short Title>
 
 - **Stage:** NN-slug
 - **Decided by:** implementer | stage-architect | orchestrator
-- **The call:** <what was genuinely undecided>
+- **The call:** <what was genuinely undecided / problem statement>
 - **Decision:** <what was chosen>
 - **Instead of:** <alternatives considered>
+- **Tradeoffs & Implications:** <trade-offs made, alternatives passed over, and downstream consequences>
 - **Because:** <rationale based on existing code or context>
 - **Change it here:** `path/to/file.ext:line` — <named constant or default>
 - **Status:** unconfirmed
@@ -74,16 +75,42 @@ Status is `unconfirmed`, `confirmed`, or `changed → stage NN`.
 
 ---
 
-## 5. Subagent Unattended Addendum
+## 5. Interactive Decision Walkthrough & Remediation Protocol (`stage cleanup`)
 
-When running under `yolo`, append this exact block to the prompts for `stage-architect` and `implementer`:
+At feature completion or on demand via `stage cleanup`, the orchestrator guides the user through recorded decisions.
+
+### Walkthrough Sequence:
+1. **One-by-One Review:** Walk through decisions in `DECISIONS.md` one at a time. For each decision, present:
+   - **The Problem:** What was unresolved or what challenge was encountered.
+   - **What Decision Was Taken:** The choice made and its exact location in code (`Change it here: path/to/file:line`).
+   - **Tradeoffs, Alternatives & Implications:** Alternatives considered, what was traded off, and downstream consequences.
+2. **User Actions:**
+   - **Confirm:** Mark `confirmed` in `DECISIONS.md`.
+   - **Reject the decision:** Mark `rejected` in `DECISIONS.md`. Record user's reason and replacement direction.
+   - **Defer:** Add to the deferred queue to be re-evaluated after the initial loop finishes.
+   - **Ask a follow-up question:** Provide answers, explain nuances, and re-prompt user with the options.
+   - **Suggest a modification to the decision:** Mark `modified: <details>` in `DECISIONS.md`. Record specific adjustments.
+3. **Deferred Resolution:** Once the initial loop finishes, process any deferred decisions until all are resolved.
+4. **Cleanup Stage Creation & Execution:**
+   - If any decisions were rejected or modified, **or** if `specs/<feature>/scratchpad/` exists:
+     - Add a new stage to `specs/<feature>/STATE.md`: `Stage NN: Cleanup and decision remediation`.
+     - In the stage spec, detail:
+       - Remediation for rejected decisions.
+       - Code changes for modified decisions at their named single places.
+       - Deletion of `specs/<feature>/scratchpad/` and temporary data/databases.
+       - Verification that all long-term tests continue to pass.
+     - Immediately launch design and implementation of the cleanup stage (`stage-architect` $\to$ verify plan $\to$ `implementer` $\leftrightarrow$ `verifier` $\to$ commit).
+
+---
+
+## 6. Subagent Minor Decisions Addendum
+
+Append this block to the prompts for `stage-architect` and `implementer` in both `stage next` and `stage yolo` modes:
 
 ```markdown
 ---
 
-## Unattended run — how to handle a judgement call
-
-This is running unattended. Nobody will answer you mid-task, so a question you raise costs the whole run a stop.
+## Minor decisions — how to handle a judgement call
 
 **Stop and report when the call is major:** scope/criteria changes; non-reversible choices (data model, schema, wire format, public API, new dependency, behavior deletion); auth/credentials/secrets/billing/PII; destructive actions outside scope; cross-file conventions; or unresolved ambiguities. Stopping on these is expected and correct.
 
@@ -99,6 +126,7 @@ End your response with this exact section:
 - **The call:** <what was genuinely undecided>
   **Decision:** <what you chose>
   **Instead of:** <the alternatives>
+  **Tradeoffs & Implications:** <trade-offs and consequences>
   **Because:** <one line rationale>
   **Change it here:** <file:line — the constant, default, or key>
 ```

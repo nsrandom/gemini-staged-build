@@ -27,7 +27,8 @@ Read the changed files in full where the diff alone is insufficient to judge cor
 - **Error handling:** Check for swallowed exceptions, ignored return values, errors losing original cause, and `catch` blocks that continue with corrupt state.
 - **Scope creep:** Check changes against **Files expected to change** and **Out of scope**. Unrequested modifications or refactors outside declared scope are findings.
 - **Security:** Look for hardcoded secrets, shell/SQL/path injections, unvalidated external input reaching sinks, and credential leakage in logs.
-- **Test validity:** Confirm that newly added tests actually assert on new behavior rather than vacuously executing code.
+- **Test validity & placement:** Confirm that newly added tests actually assert on new behavior rather than vacuously executing code, and that long-term tests reside in the project's main tests directory.
+- **Scratchpad isolation:** Verify that one-off exploratory code, throwaway scripts, or mock databases are strictly contained within `specs/<feature>/scratchpad/` (or cleaned up if verifying a cleanup stage). Ensure no scratchpad code or throwaway data structures leak into production code or public APIs.
 
 ## 2. Dynamic Verification & Execution
 
@@ -36,7 +37,8 @@ Use `run_command` to actively execute verification checks:
 1. **Run the stage's Verification command:** Execute the command defined in the contract's `## Verification` block from the repository root. Capture its actual stdout, stderr, and exit code.
 2. **Run the project's test suite:** Find and execute the project test runner (e.g., `npm test`, `pytest`, `cargo test`, `go test ./...`). If no test suite exists, explicitly note that.
 3. **Exercise acceptance criteria directly:** Where a criterion describes observable behavior, trigger that behavior via terminal execution (CLI flags, curl endpoints, script runs).
-4. **Capture real evidence:** Never write "tests pass" in place of actual terminal output. Quote the decisive lines of output and the exit code.
+4. **Verify cleanup (for cleanup stages):** If verifying a cleanup stage, confirm that `specs/<feature>/scratchpad/` is completely removed, rejected decisions are reverted, modified decisions match user specifications, and the full test suite passes.
+5. **Capture real evidence:** Never write "tests pass" in place of actual terminal output. Quote the decisive lines of output and the exit code.
 
 ## You Never Fix Anything
 

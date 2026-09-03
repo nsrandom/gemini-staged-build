@@ -93,8 +93,37 @@ case "$cmd" in
     fi
     ;;
 
+  ensure-gitignore)
+    pattern="specs/**/scratchpad/"
+    if [ -f .gitignore ]; then
+      if grep -qF "$pattern" .gitignore 2>/dev/null; then
+        echo "GITIGNORE_OK"
+      else
+        echo -e "\n# Staged Build ephemeral scratchpad\n${pattern}" >> .gitignore
+        echo "GITIGNORE_UPDATED"
+      fi
+    else
+      echo -e "# Staged Build ephemeral scratchpad\n${pattern}" > .gitignore
+      echo "GITIGNORE_CREATED"
+    fi
+    ;;
+
+  clean-scratchpad)
+    if [ -z "$feature" ]; then
+      echo "Error: feature name required" >&2
+      exit 1
+    fi
+    scratch_dir="specs/${feature}/scratchpad"
+    if [ -d "$scratch_dir" ]; then
+      rm -rf "$scratch_dir"
+      echo "REMOVED: ${scratch_dir}"
+    else
+      echo "NOT_PRESENT: ${scratch_dir}"
+    fi
+    ;;
+
   *)
-    echo "Usage: $0 {branch-exists <feature>|ensure-branch <feature> [--reuse]|commit-stage <feature> <num> <msg>|get-base|get-diff <base_commit>|clean-check}"
+    echo "Usage: $0 {branch-exists <feature>|ensure-branch <feature> [--reuse]|commit-stage <feature> <num> <msg>|get-base|get-diff <base_commit>|clean-check|ensure-gitignore|clean-scratchpad <feature>}"
     exit 1
     ;;
 esac

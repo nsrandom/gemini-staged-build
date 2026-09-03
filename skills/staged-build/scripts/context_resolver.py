@@ -51,14 +51,46 @@ def resolve_context():
         ctx["features"] = sorted(features)
         if len(features) == 1:
             ctx["active_feature"] = features[0]
-            state_file = os.path.join("specs", features[0], "STATE.md")
+            feature_dir = os.path.join("specs", features[0])
+            state_file = os.path.join(feature_dir, "STATE.md")
             if os.path.exists(state_file):
                 with open(state_file, "r", encoding="utf-8") as f:
                     ctx["state_content"] = f.read()
-            dec_file = os.path.join("specs", features[0], "DECISIONS.md")
+            dec_file = os.path.join(feature_dir, "DECISIONS.md")
             if os.path.exists(dec_file):
                 with open(dec_file, "r", encoding="utf-8") as f:
-                    ctx["decisions_content"] = f.read()
+                    content = f.read()
+                    ctx["decisions_content"] = content
+                    # Parse decision counts
+                    dec_summary = {"total": 0, "unconfirmed": 0, "confirmed": 0, "rejected": 0, "deferred": 0, "modified": 0}
+                    for line in content.splitlines():
+                        if line.strip().startswith("- **Status:**"):
+                            dec_summary["total"] += 1
+                            status_val = line.split(":", 2)[-1].strip().lower()
+                            if "unconfirmed" in status_val:
+                                dec_summary["unconfirmed"] += 1
+                            elif "confirmed" in status_val:
+                                dec_summary["confirmed"] += 1
+                            elif "rejected" in status_val:
+                                dec_summary["rejected"] += 1
+                            elif "deferred" in status_val:
+                                dec_summary["deferred"] += 1
+                            elif "modified" in status_val:
+                                dec_summary["modified"] += 1
+                    ctx["decision_summary"] = dec_summary
+            
+            # Scratchpad check
+            scratch_dir = os.path.join(feature_dir, "scratchpad")
+            if os.path.isdir(scratch_dir):
+                scratch_files = []
+                for root, _, files in os.walk(scratch_dir):
+                    for file in files:
+                        scratch_files.append(os.path.relpath(os.path.join(root, file), feature_dir))
+                ctx["has_scratchpad"] = True
+                ctx["scratchpad_files"] = scratch_files
+            else:
+                ctx["has_scratchpad"] = False
+                ctx["scratchpad_files"] = []
 
     # 3. Pipeline Routing Config
     workspace_pipeline = os.path.join(".agents", "pipeline.json")
@@ -94,6 +126,11 @@ if __name__ == "__main__":
         print(f"Branch: {context['current_branch']}")
         print(f"Uncommitted Code (excl specs): {context['uncommitted_code']}")
         print(f"Features in specs/: {', '.join(context['features']) if context['features'] else '(none)'}")
+        if context.get("decision_summary"):
+            s = context["decision_summary"]
+            print(f"Decisions: {s['total']} total ({s['unconfirmed']} unconfirmed, {s['confirmed']} confirmed, {s['rejected']} rejected, {s['deferred']} deferred, {s['modified']} modified)")
+        if "has_scratchpad" in context:
+            print(f"Scratchpad: {'Present (' + str(len(context['scratchpad_files'])) + ' files)' if context['has_scratchpad'] else 'None'}")
         print(f"Routing Source: {context['routing_source']}")
         print(f"Routing Config: {json.dumps(context['pipeline_routing'])}")
         if context['state_content']:

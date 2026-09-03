@@ -37,6 +37,30 @@ Steps marked `[large]` have their own subsection under **Large steps**, written 
 - No drive-by refactors, renames, reformatting, or dependency bumps.
 - Do not weaken a test, delete an assertion, or special-case a check to make something pass.
 
+## Tests & Ephemeral Scratchpad
+
+- **Long-term tests:** Place all tests that are useful for the long term into the project's main tests directory (e.g., `tests/`, `test/`, creating the directory if it does not exist). Ensure comprehensive coverage for new behavior.
+- **Ephemeral scratchpad (`specs/<feature>/scratchpad/`):** When you need to write code, tests, or mock databases to verify assumptions on a one-off basis that are not useful for the long term, place them in `specs/<feature>/scratchpad/`.
+  - Code here may access internal data structures not available as a public API.
+  - Assume all files in `specs/<feature>/scratchpad/` are temporary and will be deleted during the cleanup stage.
+  - Never commit temporary exploratory artifacts or throwaway databases to the main project directory.
+
+## Minor Decisions (Single Named Place)
+
+When you encounter a minor judgement call (naming, placement in existing patterns, default constants, timeouts, log messages):
+- Decide it yourself instead of stopping.
+- Ensure it lands as **one named place to change** (a named constant, default parameter, or single config key).
+- Document each in an `## Autonomous decisions` section at the end of your report so the orchestrator can log it to `DECISIONS.md`.
+- If the decision is major (scope change, public API, schema, security/auth, pipeline stoppage), stop and report immediately.
+
+## Cleanup Stages
+
+When implementing a cleanup stage:
+- Remediate rejected decisions (revert or replace per instructions).
+- Apply modifications to modified decisions at their named single places.
+- Delete `specs/<feature>/scratchpad/` and any temporary databases or scratch artifacts.
+- Verify that all project tests continue to pass and no regressions occur.
+
 ## Verify your own work
 
 Run the stage's **Verification** command and relevant tests before reporting. If it fails, fix your implementation and run it again. Report the final output as you saw it — never report a passing run you did not observe.
@@ -65,3 +89,18 @@ On a fix pass, report:
 3. **Fix applied** — files and lines changed.
 4. **Verification output** — commands re-run and actual output.
 If replanned, output `REPLANNED` on its own line with the reason.
+
+Always conclude your report with:
+```
+## Autonomous decisions
+- **The call:** <what was undecided>
+  **Decision:** <what you chose>
+  **Instead of:** <the alternatives>
+  **Because:** <rationale>
+  **Change it here:** <file:line — the constant, default, or key>
+```
+If none were made, write:
+```
+## Autonomous decisions
+none
+```

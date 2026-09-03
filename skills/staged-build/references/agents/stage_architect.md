@@ -64,10 +64,12 @@ This is where you go deep. The implementer follows it directly, so ambiguity her
 - **Per-file plan** — for every file in scope: exactly what is added, changed, or removed, and where in the file it goes.
 - **Interfaces** — exact signatures, parameter and return types, error types, and data shapes this stage introduces or consumes. Quote existing ones verbatim from the code; mark new ones as new. Name things concretely — if you write "a helper that normalizes the input", name it, give it a signature, and say what it does with each input class.
 - **Edge cases and failure modes** — what the implementer must handle: empty, absent, zero, negative, malformed, too large, concurrent, partial failure. For each, the required behavior.
-- **Test plan** — what to test, at what level, and which acceptance criterion each test maps to. Name the test files and the cases.
+- **Test plan & comprehensive coverage** — what to test, at what level, and which acceptance criterion each test maps to. Name the test files and the cases:
+  - **Comprehensive test coverage:** Ensure you specify what is needed for comprehensive test coverage across unit, integration, and edge cases.
+  - **Main project tests directory:** Tests that are useful for the long term must be placed into the main project's tests directory (e.g., `tests/`, `test/`, `src/...test...`; specify creating this directory if the project does not already have one).
+  - **One-off verification & scratchpad:** If verifying an assumption requires one-off exploratory code, throwaway test scripts, or a temporary test database that is not useful for the long term, specify that it belongs in `specs/<feature>/scratchpad/`. Note that code here may access internal/private data structures not available in the public API, with the explicit assumption that it will be deleted later during cleanup.
+- **Minor decisions & single named place** — where a minor decision could reasonably go two ways (naming, placement in existing patterns, default constants, timeouts), make the call and land it as **one named place to change** (a constant, default parameter, or config key). Output it in your `Autonomous decisions` section so it is logged to `DECISIONS.md` and can be reviewed during `stage cleanup`. Major decisions (scope, schemas, public APIs, auth) must never be decided quietly — stop and report.
 - **Do not do** — the specific wrong turns available here: the tempting refactor, the adjacent bug that is not this stage's problem, the abstraction that is premature until a later stage.
-
-Where a decision could reasonably go two ways, make the call and say why in one line. The implementer should never have to choose between two readings of your spec.
 
 ## Rules
 

@@ -34,14 +34,14 @@ Anything that survives that analysis as a genuine unknown becomes **stage 01** �
 
 ### 2. Save Plan Files to Disk
 
-Create the directory: `mkdir -p specs/<feature>/stages`, where `<feature>` is a short kebab-case slug (`unit-conversion`, `oauth-login`).
+Create the directories: `mkdir -p specs/<feature>/stages`, where `<feature>` is a short kebab-case slug (`unit-conversion`, `oauth-login`). Ensure that `.gitignore` contains `specs/**/scratchpad/` so that any temporary verification artifacts or databases created during feature execution are ignored by git.
 
 #### `specs/<feature>/SPEC.md`
 Write the comprehensive specification:
 - **Goal** — one paragraph in your own words so the user can catch any misunderstanding.
 - **Context** — what exists today that this builds on, citing real file paths.
 - **Approach** — the high-level shape of the solution and significant trade-offs.
-- **Stages** — numbered stages, one paragraph each: what it accomplishes and why it sits at that point in the sequence.
+- **Stages** — numbered stages, one paragraph each: what it accomplishes and why it sits at that point in the sequence. Each stage must include comprehensive test coverage in the project's main tests directory.
 - **Non-goals** — what this explicitly does not cover.
 - **Open Questions & Defaults** — numbered, specific, and answerable. State the default behavior for each if the user leaves it unaddressed.
 - **Assumptions** — anything assumed, and what changes if invalid.
@@ -64,6 +64,16 @@ Branch: <feature> (not created yet)
 - Status is one of `pending`, `in-progress`, `done`, `blocked`. All stages start `pending`. If `STATE.md` already exists, preserve the status of existing rows you are not modifying.
 - `Branch:` is the single feature branch for the entire feature: `<feature>` (never build on `main` and do not add a `staged-build/` prefix). If the branch already exists, the orchestrator will ask the user whether to reuse it.
 - Do **not** write anything under `stages/`. Detailed stage specs (`NN-slug.md` and `NN-slug.detail.md`) are written directly by `stage-architect` when each stage begins.
+
+#### `specs/<feature>/DECISIONS.md`
+Initialize the decision log with the header so minor decisions in both `stage next` and `stage yolo` can be captured immediately and reviewed during `stage cleanup`:
+
+```markdown
+# Decisions — <feature>
+
+Decisions taken without asking during development. Each is meant to be cheap to change; the "Change it here" line says where.
+Status is `unconfirmed`, `confirmed`, `rejected`, `deferred`, or `modified: <details>`.
+```
 
 ### 3. Iteration Pass (Updating the Plan)
 
