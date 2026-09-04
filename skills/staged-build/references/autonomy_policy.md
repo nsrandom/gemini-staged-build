@@ -25,14 +25,24 @@ The pipeline stops immediately. The orchestrator explains the exact blocker, pre
 
 ## 2. Minor Decisions (Decide, Log, & Continue)
 
-Decided autonomously without interrupting the user during both `stage next` and `stage yolo`.
+Decided autonomously without interrupting the user during both `stage next` and `stage yolo`. Minor decisions are classified into two tiers to streamline subsequent review:
 
+### Tier 1: Routine / Standard Conventions
+Routine implementation choices that follow established idioms or localized convenience:
 - **Local Naming:** Internal variables, helper function names, local types, test names, slugs.
-- **Existing Patterns:** Placement within existing project directories and module structures.
+- **Existing Patterns:** Placement within existing project directories and module structures, test file colocation.
 - **Default Constants:** Setting local timeouts, retry limits, cache TTLs, or buffer sizes.
-- **Messages & Logs:** Exact phrasing of error messages, log statements, and comments.
+- **Messages & Logs:** Exact phrasing of error messages, log statements, alert strings, and comments.
+- **CLI Option Flags:** Non-breaking flag aliases or formatting defaults.
 - **Test Structures:** Unit test fixture setup, table-driven test definitions, test case ordering.
 - **Internal Ordering:** Order of independent tasks within a single stage.
+
+### Tier 2: Substantive Architecture & Behavior
+Decisions that subtly shape behavior, contract boundaries, or validation semantics:
+- **Type Validation:** Strict vs. loose type parsing (e.g. rejecting non-boolean JSON values vs. coercing truthy values).
+- **Evaluation Ordering:** Query or filter evaluation ordering (e.g. short-circuiting conditions in WHERE clauses).
+- **Public Contract Additions:** Supplementary non-breaking helper methods or optional parameters exposed on public contracts.
+- **Fallback Behavior:** Fallback strategy when optional services or configurations are absent.
 
 ---
 
@@ -63,6 +73,7 @@ Status is `unconfirmed`, `confirmed`, `rejected`, `deferred`, or `modified: <det
 ## D01 — <Short Title>
 
 - **Stage:** NN-slug
+- **Tier:** 1 | 2
 - **Decided by:** implementer | stage-architect | orchestrator
 - **The call:** <what was genuinely undecided / problem statement>
 - **Decision:** <what was chosen>
@@ -75,23 +86,31 @@ Status is `unconfirmed`, `confirmed`, `rejected`, `deferred`, or `modified: <det
 
 ---
 
-## 5. Interactive Decision Walkthrough & Remediation Protocol (`stage cleanup`)
+## 5. Tiered Decision Walkthrough & Remediation Protocol (`stage cleanup`)
 
 At feature completion or on demand via `stage cleanup`, the orchestrator guides the user through recorded decisions.
 
 ### Walkthrough Sequence:
-1. **One-by-One Review:** Walk through decisions in `DECISIONS.md` one at a time. For each decision, present:
+1. **Context Reset:** Clear conversational history to drop prompt size from ~160K tokens to ~10K tokens. Reload ONLY:
+   - `specs/<feature>/SESSION_STATE.json`
+   - `specs/<feature>/SPEC.md`, `STATE.md`, `DECISIONS.md`
+   - Directory listing of `specs/<feature>/scratchpad/`
+2. **Tier 1 Consolidated Batch Review:** Present all Tier 1 decisions as a single consolidated review modal/table:
+   > *"N routine decisions followed standard codebase conventions (see table). [Confirm All N (Recommended)] or [Select specific decision to inspect]."*
+   - If the user selects **Confirm All N**, mark all Tier 1 decisions as `confirmed` in `DECISIONS.md`.
+   - If the user flags specific decisions for closer review, queue those flagged decisions for the individual walkthrough.
+3. **Tier 2 (and Flagged) Individual Walkthrough Loop:** Walk through Tier 2 decisions and user-flagged Tier 1 decisions **one at a time**. For each decision, present:
    - **The Problem:** What was unresolved or what challenge was encountered.
    - **What Decision Was Taken:** The choice made and its exact location in code (`Change it here: path/to/file:line`).
    - **Tradeoffs, Alternatives & Implications:** Alternatives considered, what was traded off, and downstream consequences.
-2. **User Actions:**
+4. **User Actions:**
    - **Confirm:** Mark `confirmed` in `DECISIONS.md`.
    - **Reject the decision:** Mark `rejected` in `DECISIONS.md`. Record user's reason and replacement direction.
    - **Defer:** Add to the deferred queue to be re-evaluated after the initial loop finishes.
    - **Ask a follow-up question:** Provide answers, explain nuances, and re-prompt user with the options.
    - **Suggest a modification to the decision:** Mark `modified: <details>` in `DECISIONS.md`. Record specific adjustments.
-3. **Deferred Resolution:** Once the initial loop finishes, process any deferred decisions until all are resolved.
-4. **Cleanup Stage Creation & Execution:**
+5. **Deferred Resolution:** Once the initial loop finishes, process any deferred decisions until all are resolved.
+6. **Cleanup Stage Creation & Execution:**
    - If any decisions were rejected or modified, **or** if `specs/<feature>/scratchpad/` exists:
      - Add a new stage to `specs/<feature>/STATE.md`: `Stage NN: Cleanup and decision remediation`.
      - In the stage spec, detail:
@@ -99,7 +118,7 @@ At feature completion or on demand via `stage cleanup`, the orchestrator guides 
        - Code changes for modified decisions at their named single places.
        - Deletion of `specs/<feature>/scratchpad/` and temporary data/databases.
        - Verification that all long-term tests continue to pass.
-     - Immediately launch design and implementation of the cleanup stage (`stage-architect` $\to$ verify plan $\to$ `implementer` $\leftrightarrow$ `verifier` $\to$ commit).
+     - Immediately launch design and implementation of the cleanup stage via `stage-runner` (`stage-architect` $\to$ verify plan $\to$ `implementer` $\leftrightarrow$ `verifier` $\to$ commit).
 
 ---
 
@@ -115,6 +134,8 @@ Append this block to the prompts for `stage-architect` and `implementer` in both
 **Stop and report when the call is major:** scope/criteria changes; non-reversible choices (data model, schema, wire format, public API, new dependency, behavior deletion); auth/credentials/secrets/billing/PII; destructive actions outside scope; cross-file conventions; or unresolved ambiguities. Stopping on these is expected and correct.
 
 **Decide it yourself when the call is minor:** naming, placement in existing patterns, default values/constants, messages/logs, test structure, or internal step order.
+- **Tier 1:** Routine conventions (naming, constants, log messages, test layout).
+- **Tier 2:** Substantive behavior (type validation, filter/eval ordering, public helper additions).
 
 **Every minor decision must land as one named place to change** (a named constant, default parameter, or single config key).
 
@@ -124,6 +145,7 @@ End your response with this exact section:
 ## Autonomous decisions
 
 - **The call:** <what was genuinely undecided>
+  **Tier:** 1 | 2
   **Decision:** <what you chose>
   **Instead of:** <the alternatives>
   **Tradeoffs & Implications:** <trade-offs and consequences>

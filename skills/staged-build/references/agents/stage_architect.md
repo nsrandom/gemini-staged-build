@@ -33,7 +33,10 @@ This file is the acceptance contract. The **verifier** is given this file and th
 # Stage NN: <title>
 
 ## Goal
-<one paragraph: what is true after this stage that was not true before>
+<one paragraph: what this stage will accomplish>
+
+## Design details
+<max four paragraphs: explain the technical design of how we will accomplish the goals of this stage>
 
 ## Files expected to change
 - path/to/file.ext — what changes and why
@@ -49,7 +52,6 @@ This file is the acceptance contract. The **verifier** is given this file and th
 
 ## Out of scope
 - <what an implementer might reasonably add here but must not>
-```
 
 **Acceptance criteria describe observable behavior.** "Returns the project value when `.agents/pipeline.json` exists" is a criterion. "Add a `loadConfig` function" is not — it describes the diff, and a verifier cannot check it without reading internal implementation details. Write criteria someone could check against a black box.
 
@@ -66,9 +68,9 @@ This is where you go deep. The implementer follows it directly, so ambiguity her
 - **Edge cases and failure modes** — what the implementer must handle: empty, absent, zero, negative, malformed, too large, concurrent, partial failure. For each, the required behavior.
 - **Test plan & comprehensive coverage** — what to test, at what level, and which acceptance criterion each test maps to. Name the test files and the cases:
   - **Comprehensive test coverage:** Ensure you specify what is needed for comprehensive test coverage across unit, integration, and edge cases.
-  - **Main project tests directory:** Tests that are useful for the long term must be placed into the main project's tests directory (e.g., `tests/`, `test/`, `src/...test...`; specify creating this directory if the project does not already have one).
+  - **Main project tests directory:** Tests that are useful for the long term must be placed into the main project's tests directory (e.g., `tests/`, `test/`, `src/...test...`; specify creating this directory (name it `tests/`) if the project does not already have one).
   - **One-off verification & scratchpad:** If verifying an assumption requires one-off exploratory code, throwaway test scripts, or a temporary test database that is not useful for the long term, specify that it belongs in `specs/<feature>/scratchpad/`. Note that code here may access internal/private data structures not available in the public API, with the explicit assumption that it will be deleted later during cleanup.
-- **Minor decisions & single named place** — where a minor decision could reasonably go two ways (naming, placement in existing patterns, default constants, timeouts), make the call and land it as **one named place to change** (a constant, default parameter, or config key). Output it in your `Autonomous decisions` section so it is logged to `DECISIONS.md` and can be reviewed during `stage cleanup`. Major decisions (scope, schemas, public APIs, auth) must never be decided quietly — stop and report.
+- **Minor decisions & single named place** — where a minor decision could reasonably go two ways (naming, placement in existing patterns, default constants, timeouts), make the call and land it as **one named place to change** (a constant, default parameter, or config key). Classify it as **Tier 1** (Routine Conventions) or **Tier 2** (Substantive Behavior). Output it in your `Autonomous decisions` section so it is logged to `DECISIONS.md` and can be reviewed during `stage cleanup`. Major decisions (scope, schemas, public APIs, auth) must never be decided quietly — stop and report.
 - **Do not do** — the specific wrong turns available here: the tempting refactor, the adjacent bug that is not this stage's problem, the abstraction that is premature until a later stage.
 
 ## Rules
@@ -77,6 +79,27 @@ This is where you go deep. The implementer follows it directly, so ambiguity her
 - Commands are for `mkdir -p` and reading the repo (`ls`, `git log`). Never for editing files, running builds, or installing anything.
 - If the stage contradicts the codebase, depends on something that does not exist, or cannot be verified as described, write no stage files. Report the conflict and what the plan would need to change. That is a real result, not a failure.
 
-## Report
+## Disk-Offloaded Reporting & Compact Return Payload
 
-State whether you specified the stage or split it. Give the paths you wrote, the acceptance criteria as a list, the verification command, and the numbers and titles of every step you marked `[large]`. Flag anything the implementer is likely to get wrong.
+1. **Write Full Specs to Disk:** Directly create `specs/<feature>/stages/NN-slug.md` and `NN-slug.detail.md` on disk. Do not dump complete specifications or line-by-line task plans into the return message.
+2. **Compact Completion Payload ($\le 500$ Tokens):** Your final response returned to the caller must be strictly bounded to a compact summary:
+
+```yaml
+STATUS: SPECIFIED | SPLIT | CONFLICT
+STAGE_FILES_WRITTEN:
+  - specs/<feature>/stages/NN-slug.md
+  - specs/<feature>/stages/NN-slug.detail.md
+ACCEPTANCE_CRITERIA_COUNT: <N>
+VERIFICATION_COMMAND: "<command>"
+LARGE_STEPS:
+  - Step N: <title>
+DECISIONS_LOGGED:
+  - ID: D01
+    Tier: 1 | 2
+    Call: <title>
+    File: path/to/file:line
+SUMMARY: 1-4 sentence overview of the stage plan.
+```
+
+If the stage was split, output `STATUS: SPLIT` with the list of created sub-stages.
+If a conflict occurred, output `STATUS: CONFLICT` and state what contradicts the codebase in `SUMMARY`.

@@ -25,6 +25,8 @@ Saving the plan to disk first makes it easy for the user to inspect the draft di
 
 Read the repo first. Use search and file inspection tools to find what exists. Cite real paths. Never describe a structure you have not looked at. If the repo is empty, say so and name the stack you would use and why — as an explicit question, not an assumption.
 
+Have a detailed discussion with the user on the feature's requirements and technical design. Prefer to ask questions instead of assuming in this phase. After we have an initial plan, critique it thoroughly, and ask the user more questions to really nail down the details.
+
 Then analyse **feasibility** across the whole plan before finalizing stages:
 - What in this goal is not obviously possible with what is here?
 - What depends on a library, service, API, version, or permission whose behavior you have not confirmed?
@@ -40,7 +42,7 @@ Create the directories: `mkdir -p specs/<feature>/stages`, where `<feature>` is 
 Write the comprehensive specification:
 - **Goal** — one paragraph in your own words so the user can catch any misunderstanding.
 - **Context** — what exists today that this builds on, citing real file paths.
-- **Approach** — the high-level shape of the solution and significant trade-offs.
+- **Approach** — the high-level shape of the solution, important technical details and considerations, and significant trade-offs.
 - **Stages** — numbered stages, one paragraph each: what it accomplishes and why it sits at that point in the sequence. Each stage must include comprehensive test coverage in the project's main tests directory.
 - **Non-goals** — what this explicitly does not cover.
 - **Open Questions & Defaults** — numbered, specific, and answerable. State the default behavior for each if the user leaves it unaddressed.

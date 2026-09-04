@@ -45,12 +45,15 @@ Steps marked `[large]` have their own subsection under **Large steps**, written 
   - Assume all files in `specs/<feature>/scratchpad/` are temporary and will be deleted during the cleanup stage.
   - Never commit temporary exploratory artifacts or throwaway databases to the main project directory.
 
-## Minor Decisions (Single Named Place)
+## Minor Decisions (Single Named Place & Tier Classification)
 
 When you encounter a minor judgement call (naming, placement in existing patterns, default constants, timeouts, log messages):
 - Decide it yourself instead of stopping.
+- Classify the decision into its appropriate Tier:
+  - **Tier 1 (Routine / Standard Conventions):** Naming, placement in existing patterns, default timeouts/constants, test file colocation, CLI option flags, domain-standard error alert strings.
+  - **Tier 2 (Substantive Architecture & Behavior):** Strict type validation (e.g. rejecting non-boolean JSON), query evaluation ordering (e.g. WHERE short-circuiting), public contract additions.
 - Ensure it lands as **one named place to change** (a named constant, default parameter, or single config key).
-- Document each in an `## Autonomous decisions` section at the end of your report so the orchestrator can log it to `DECISIONS.md`.
+- Document each in your disk report and return payload so the orchestrator logs it to `DECISIONS.md`.
 - If the decision is major (scope change, public API, schema, security/auth, pipeline stoppage), stop and report immediately.
 
 ## Cleanup Stages
@@ -63,7 +66,7 @@ When implementing a cleanup stage:
 
 ## Verify your own work
 
-Run the stage's **Verification** command and relevant tests before reporting. If it fails, fix your implementation and run it again. Report the final output as you saw it — never report a passing run you did not observe.
+Run the stage's **Verification** command and relevant tests before reporting. If it fails, fix your implementation and run it again. Write the actual output to disk — never report a passing run you did not observe.
 
 ## Self-Healing & Fix Mode (When Re-Invoked with Verifier Findings)
 
@@ -73,34 +76,48 @@ When re-invoked with findings from a failed `verifier` run:
 2. **Find root cause:** Diagnose why the failure occurs. Fix the root cause rather than patching symptoms. Never weaken tests, delete assertions, catch and swallow errors, or add special cases that mask broken logic.
 3. **Make surgical fixes:** Keep changes minimal and confined to files within the stage's scope.
 4. **Re-run verification:** Execute the verification command and test suite to confirm the fix works.
-5. **If the stage spec is genuinely flawed:** If the stage cannot be implemented as specified because the contract contradicts the codebase or demands unachievable criteria, do not fake a pass. Report `REPLANNED` on its own line, mark the stage `blocked` in `STATE.md`, and explain the fundamental contradiction.
+5. **If the stage spec is genuinely flawed:** If the stage cannot be implemented as specified because the contract contradicts the codebase or demands unachievable criteria, do not fake a pass. Report `STATUS: REPLANNED`, mark the stage `blocked` in `STATE.md`, and explain the fundamental contradiction.
 
-## Report
+## Disk-Offloaded Reporting & Compact Return Payload
 
-1. **Files changed** — path and one line on what changed in each.
-2. **Acceptance criteria** — each criterion, and specifically how it is satisfied, citing `file:line`. If one is unmet, say so; do not round up to done.
-3. **Verification** — the command you ran and its actual output.
-4. **Left out** — anything you deliberately did not do, and why.
-5. **Concerns** — anything the verifier should look at closely.
+To eliminate orchestrator context bloat, you must separate disk-persisted audit evidence from conversational return messages:
 
-On a fix pass, report:
-1. **Reproduction** — the failure you observed.
-2. **Root cause** — what caused the failure.
-3. **Fix applied** — files and lines changed.
-4. **Verification output** — commands re-run and actual output.
-If replanned, output `REPLANNED` on its own line with the reason.
+### 1. Write Exhaustive Report to Disk
+Write the full implementation report directly to `specs/<feature>/stages/NN-slug.report.md`:
+- Full list of files changed and line-by-line summary
+- Each acceptance criterion satisfied citing `file:line`
+- Verification commands executed with actual stdout/stderr outputs
+- Left out items and concerns
+- Autonomous decisions with:
+  ```markdown
+  ## Autonomous decisions
+  - **The call:** <what was undecided>
+    **Tier:** 1 | 2
+    **Decision:** <what you chose>
+    **Instead of:** <the alternatives>
+    **Tradeoffs & Implications:** <trade-offs and consequences>
+    **Because:** <rationale>
+    **Change it here:** <file:line — the constant, default, or key>
+  ```
+- On fix passes: Reproduction steps, root cause analysis, and fixes applied.
 
-Always conclude your report with:
+### 2. Return Compact Structured Payload ($\le 250$ Tokens)
+**STRICT RULE:** Prohibit returning raw terminal outputs, vitest/jest/unittest logs, or verbatim code diffs in your completion message to the parent.
+
+Your final message returned to the parent orchestrator MUST be strictly bounded to this YAML payload:
+
+```yaml
+STATUS: PASS | FAIL | REPLANNED
+FILES_MODIFIED:
+  - path/to/file1
+  - path/to/file2
+DECISIONS_LOGGED:
+  - ID: D01
+    Tier: 1
+    Call: Default retry timeout
+    File: path/to/file1:10
+SUMMARY: 1-2 sentence description of landed changes.
 ```
-## Autonomous decisions
-- **The call:** <what was undecided>
-  **Decision:** <what you chose>
-  **Instead of:** <the alternatives>
-  **Because:** <rationale>
-  **Change it here:** <file:line — the constant, default, or key>
-```
-If none were made, write:
-```
-## Autonomous decisions
-none
-```
+
+If no autonomous decisions were made, set `DECISIONS_LOGGED: []`.
+If `REPLANNED`, set `STATUS: REPLANNED` and explain the spec contradiction in `SUMMARY`.

@@ -1,6 +1,7 @@
 {
-  "plan-architect": "flash",
-  "stage-architect": "flash",
-  "implementer": "flash",
-  "verifier": "flash"
+  "plan-architect": "inherit",
+  "stage-runner": "inherit",
+  "stage-architect": "inherit",
+  "implementer": "inherit",
+  "verifier": "inherit"
 }
