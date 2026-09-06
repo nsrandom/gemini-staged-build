@@ -22,6 +22,7 @@ A multi-agent development pipeline in which complex software engineering goals a
 | `stage cleanup [--feature <name>]` | Resets conversational context to lean state (`SESSION_STATE.json` + specs). Presents Tier 1 decisions in a single batch review table ("Confirm All N"). Walks through Tier 2 and flagged decisions one-by-one. Automatically designs and executes cleanup stage for remediations and scratchpad deletion. | Stops after verifying and committing cleanup stage. |
 | `stage status` | Displays active plan state, current git/jj branch, runtime session state, decision summary, and most recent stage report. | Read-only. |
 | `stage redo` | Discards current stage work with confirmation, resets stage to `pending`, and re-runs `next`. | Stops after user confirmation. |
+| `stage analyze_tokens [--feature <name>]` | Parses subagent transcripts in `~/.gemini/antigravity/brain/` to produce standardized `tokens_efficiency_report.md` and `.json`. Supports post-completion benchmark reports and mid-feature bottleneck diagnostics. Aliases: `stage tokens`, `stage telemetry`. | Read-only analysis. Prints compact terminal summary ($\le 250$ tokens). |
 
 ---
 
@@ -50,15 +51,17 @@ A multi-agent development pipeline in which complex software engineering goals a
 
 ```text
 specs/<feature>/
-  SPEC.md                    # High-level architecture, approach, stages, non-goals
-  STATE.md                   # Stage tracker table and branch binding
-  DECISIONS.md               # Log of minor decisions taken in next and yolo modes (Tier 1 & Tier 2)
-  SESSION_STATE.json         # Runtime environment state, test shortcuts, sandbox preferences
-  scratchpad/                # One-off verification code, tests, mock DBs (gitignored, deleted later)
+  SPEC.md                         # High-level architecture, approach, stages, non-goals
+  STATE.md                        # Stage tracker table and branch binding
+  DECISIONS.md                    # Log of minor decisions taken in next and yolo modes (Tier 1 & Tier 2)
+  SESSION_STATE.json              # Runtime environment state, test shortcuts, sandbox preferences
+  tokens_efficiency_report.md     # Standardized token usage and efficiency benchmark report
+  tokens_efficiency_report.json   # Structured telemetry dataset for cross-feature comparisons
+  scratchpad/                     # One-off verification code, tests, mock DBs (gitignored, deleted later)
   stages/
-    NN-slug.md               # Black-box acceptance contract & verification command
-    NN-slug.detail.md        # Deep implementation plan & large step breakdowns
-    NN-slug.report.md        # Stage completion report with verification evidence
+    NN-slug.md                    # Black-box acceptance contract & verification command
+    NN-slug.detail.md             # Deep implementation plan & large step breakdowns
+    NN-slug.report.md             # Stage completion report with verification evidence
 ```
 
 ### `SESSION_STATE.json` Schema
@@ -320,3 +323,37 @@ flowchart TD
 3. Reset stage changes (`git reset --hard <base_commit>`).
 4. Set row status back to `pending` in `STATE.md` and delete `NN-slug.report.md`.
 5. Trigger `stage next`.
+
+---
+
+### 7. `stage analyze_tokens [--feature <name>]` (Aliases: `stage tokens`, `stage telemetry`)
+
+Parses subagent and orchestrator transcripts in `~/.gemini/antigravity/brain/` for the active feature to compute token accumulation, model thinking, tool usage, latency, and compliance.
+
+```mermaid
+flowchart TD
+    Trigger([stage analyze_tokens]) --> Detect[Auto-detect feature from STATE.md or git branch]
+    Detect --> ScanTranscripts[Scan ~/.gemini/antigravity/brain/*/ for feature transcripts]
+    ScanTranscripts --> Classify[Role Classifier:\nstage-runner, implementer, verifier, stage-architect, etc.]
+    Classify --> ModeCheck{All stages complete in STATE.md?}
+    ModeCheck -- Yes --> PostReport[Post-Feature Mode:\nFull cross-stage benchmarks,\nYOLO vs Single-Stage analysis,\nInvariant compliance audit]
+    ModeCheck -- No --> MidReport[Mid-Feature Diagnostic Mode:\nActive stage bottleneck alerts,\nRunaway turn & view_file warnings]
+    PostReport --> WriteArtifacts[Write specs/<feature>/tokens_efficiency_report.md & .json]
+    MidReport --> WriteArtifacts
+    WriteArtifacts --> PrintSummary[Print compact terminal summary <= 250 tokens]
+```
+
+1. **Dual Operational Modes:**
+   - **Post-Feature Mode:** Run after all stages complete or after `stage cleanup`. Generates the full benchmark report comparing multi-stage YOLO vs. single-stage runs, audit of the $\le 250$-token return invariant, and actionable optimization hypotheses.
+   - **Mid-Feature Diagnostic Mode:** Run anytime during development (e.g. at Stage 5 of 20). Detects runaway turn counts (>30 turns), excessive file-reading overhead (`view_file` tax), high latency (>10 mins), or retry loops before the full feature finishes.
+2. **Execution:**
+   - Execute: `python3 .agents/plugins/staged-build/scripts/analyze_tokens.py [--feature <name>]` (or `skills/staged-build/scripts/analyze_tokens.py`).
+   - Automatically resolves the active feature if `--feature` is omitted.
+3. **Artifacts Produced:**
+   - `specs/<feature>/tokens_efficiency_report.md`: Standardized human-readable report.
+   - `specs/<feature>/tokens_efficiency_report.json`: Machine-readable structured telemetry dataset for cross-feature meta-analysis.
+4. **Proactive Suggestion Invariants:**
+   - **Feature Completion Trigger:** Whenever all stages in `STATE.md` are marked `done`, or after `stage cleanup`, the Root Orchestrator MUST conclude with:
+     > *"Feature complete! To inspect token consumption, latency, and subagent efficiency, run: `stage analyze_tokens`."*
+   - **Mid-Feature Watchdog Trigger:** If any single stage exceeds 15 minutes or 2 retry loops, the orchestrator MUST alert the user and recommend `stage analyze_tokens` mid-run.
+

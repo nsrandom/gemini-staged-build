@@ -26,15 +26,18 @@ A production-ready Google Antigravity and Antigravity CLI plugin that orchestrat
 staged-build/ (Repository Root)
 ├── .gitignore                               # Ignore patterns (including specs/**/scratchpad/)
 ├── CHANGELOG.md                             # Release notes & version history
-├── plugin.json                              # Plugin manifest (v1.4.0)
+├── plugin.json                              # Plugin manifest (v1.5.0)
 ├── pipeline.json                            # Model routing configuration
 ├── README.md                                # This documentation
+├── scripts/
+│   └── analyze_tokens.py                    # Standalone token & telemetry analyzer CLI
 ├── rules/
 │   └── AGENTS.md                            # Rules: Orchestrator invariants, layout, branch policies, cleanup
 └── skills/
     └── staged-build/
         ├── SKILL.md                         # Progressive skill definition & runbook
         ├── scripts/
+        │   ├── analyze_tokens.py            # Token & telemetry analyzer script mirror
         │   ├── context_resolver.py          # Fast VCS, session state, scratchpad, & decision inspector
         │   └── branch_helper.sh             # Feature branch, diff, gitignore & scratchpad helper
         └── references/
@@ -165,6 +168,17 @@ Displays current plan progress, active branch, session state (`SESSION_STATE.jso
 stage redo
 ```
 Safely resets current stage modifications and restarts execution.
+
+### 7. Analyze Token Efficiency & Telemetry
+```text
+stage analyze_tokens [--feature <name>]
+```
+Aliases: `stage tokens`, `stage telemetry`
+Parses subagent and orchestrator transcripts in `~/.gemini/antigravity/brain/` for the active feature:
+- **Post-Feature Mode:** Run after stage completion or `stage cleanup` to evaluate full-build token consumption, wall-clock latency, tool call distributions, invariant compliance, and YOLO vs. single-stage tradeoffs.
+- **Mid-Feature Diagnostic Mode:** Run halfway through development (e.g., at Stage 5 of 20) to detect runaway turn counts (>30 turns), excessive `view_file` calls, and retry bottlenecks before the full feature finishes.
+- Writes standardized `specs/<feature>/tokens_efficiency_report.md` and `tokens_efficiency_report.json`.
+- Prints a compact terminal summary ($\le 250$ tokens).
 
 ---
 

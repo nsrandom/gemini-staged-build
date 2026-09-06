@@ -39,6 +39,10 @@ You are the orchestrator. You coordinate subagents, interact with the user, and 
      - Tradeoffs, alternatives, and implications
      The user may: confirm, reject, defer, ask a follow-up question, or suggest a modification. Deferred decisions are asked at the end of the loop.
   5. **Remediation:** If any decisions were rejected or modified, or if `scratchpad/` exists, create a new cleanup stage in `STATE.md`, specify details for remediation and deletion of temporary data, and immediately execute design and implementation of the cleanup stage via `stage-runner`.
+- **Token Efficiency & Telemetry Suggestion Invariants:**
+  - **Feature Completion Trigger:** When all stages in `STATE.md` are marked `done`, or immediately upon concluding `stage cleanup`, the Root Orchestrator MUST proactively conclude with:
+    > *"Feature complete! To inspect token consumption, latency, and subagent efficiency, run: `stage analyze_tokens`."*
+  - **Mid-Feature Watchdog Trigger:** If any single stage exceeds 15 minutes of execution or undergoes more than 2 `implementer` $\leftrightarrow$ `verifier` retry loops, the Root Orchestrator MUST alert the user and recommend running `stage analyze_tokens` mid-run to inspect bottlenecks and tool thrashing.
 
 ---
 
@@ -48,14 +52,16 @@ All plan artifacts reside in `specs/<feature>/`:
 
 ```text
 specs/<feature>/
-  SPEC.md                    # plan-architect: Goal, context, approach, stages, non-goals
-  STATE.md                   # plan-architect: Stage status table and branch metadata
-  DECISIONS.md               # orchestrator: Decision log for minor decisions (Tier 1 & Tier 2)
-  SESSION_STATE.json         # orchestrator: Runtime environment state, test shortcuts, sandbox preferences
-  scratchpad/                # temporary one-off verification code, tests, mock DBs (gitignored, deleted later)
-  stages/NN-slug.md          # stage-architect: Acceptance contract and verification command
-  stages/NN-slug.detail.md   # stage-architect: Task breakdown, large step specs, per-file plan
-  stages/NN-slug.report.md   # stage-runner / orchestrator: Post-verification evidence and stage summary
+  SPEC.md                         # plan-architect: Goal, context, approach, stages, non-goals
+  STATE.md                        # plan-architect: Stage status table and branch metadata
+  DECISIONS.md                    # orchestrator: Decision log for minor decisions (Tier 1 & Tier 2)
+  SESSION_STATE.json              # orchestrator: Runtime environment state, test shortcuts, sandbox preferences
+  tokens_efficiency_report.md     # orchestrator: Standardized token usage and efficiency benchmark report
+  tokens_efficiency_report.json   # orchestrator: Structured telemetry dataset for cross-feature comparisons
+  scratchpad/                     # temporary one-off verification code, tests, mock DBs (gitignored, deleted later)
+  stages/NN-slug.md               # stage-architect: Acceptance contract and verification command
+  stages/NN-slug.detail.md        # stage-architect: Task breakdown, large step specs, per-file plan
+  stages/NN-slug.report.md        # stage-runner / orchestrator: Post-verification evidence and stage summary
 ```
 
 If multiple features exist in `specs/`, identify the target feature or ask the user. Never guess.
@@ -113,3 +119,15 @@ Subagents return explicit verdict tokens on their final line:
   - Every minor decision must land as **one named place to change** (constant, default param, single config key).
   - Must be logged immediately to `specs/<feature>/DECISIONS.md` with its Tier classification (`Tier: 1 | 2`).
   - Reviewed and confirmed/remediated during `stage cleanup` via consolidated batch review (Tier 1) and targeted walkthroughs (Tier 2).
+
+---
+
+## 6. Token Efficiency & Telemetry Protocol (`stage analyze_tokens`)
+
+- **Telemetry Tracking:** Token usage, wall-clock latency, and tool invocation distribution are extracted from local transcripts via `scripts/analyze_tokens.py`.
+- **Proactive Suggestion Invariants:**
+  - **Feature Completion Trigger:** Whenever all stages in `STATE.md` are marked `done`, or immediately upon concluding `stage cleanup`, the Root Orchestrator MUST conclude with:
+    > *"Feature complete! To inspect token consumption, latency, and subagent efficiency, run: `stage analyze_tokens`."*
+  - **Mid-Feature Watchdog Trigger:** If any single stage exceeds 15 minutes of execution or undergoes more than 2 `implementer` $\leftrightarrow$ `verifier` retry loops, the Root Orchestrator MUST alert the user and recommend running `stage analyze_tokens` mid-run to inspect bottlenecks and tool thrashing.
+- **Reporting Artifacts:** The command writes `specs/<feature>/tokens_efficiency_report.md` (human-readable baseline) and `tokens_efficiency_report.json` (structured dataset for future cross-feature comparisons).
+
