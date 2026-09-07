@@ -347,7 +347,7 @@ flowchart TD
    - **Post-Feature Mode:** Run after all stages complete or after `stage cleanup`. Generates the full benchmark report comparing multi-stage YOLO vs. single-stage runs, audit of the $\le 250$-token return invariant, and actionable optimization hypotheses.
    - **Mid-Feature Diagnostic Mode:** Run anytime during development (e.g. at Stage 5 of 20). Detects runaway turn counts (>30 turns), excessive file-reading overhead (`view_file` tax), high latency (>10 mins), or retry loops before the full feature finishes.
 2. **Execution:**
-   - Execute: `python3 .agents/plugins/staged-build/scripts/analyze_tokens.py [--feature <name>]` (or `skills/staged-build/scripts/analyze_tokens.py`).
+   - Execute: `python3 .agents/plugins/staged-build/skills/staged-build/scripts/analyze_tokens.py [--feature <name>]`.
    - Automatically resolves the active feature if `--feature` is omitted.
 3. **Artifacts Produced:**
    - `specs/<feature>/tokens_efficiency_report.md`: Standardized human-readable report.

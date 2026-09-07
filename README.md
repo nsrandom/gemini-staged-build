@@ -29,15 +29,13 @@ staged-build/ (Repository Root)
 ├── plugin.json                              # Plugin manifest (v1.5.0)
 ├── pipeline.json                            # Model routing configuration
 ├── README.md                                # This documentation
-├── scripts/
-│   └── analyze_tokens.py                    # Standalone token & telemetry analyzer CLI
 ├── rules/
 │   └── AGENTS.md                            # Rules: Orchestrator invariants, layout, branch policies, cleanup
 └── skills/
     └── staged-build/
         ├── SKILL.md                         # Progressive skill definition & runbook
         ├── scripts/
-        │   ├── analyze_tokens.py            # Token & telemetry analyzer script mirror
+        │   ├── analyze_tokens.py            # Token & telemetry analyzer CLI script
         │   ├── context_resolver.py          # Fast VCS, session state, scratchpad, & decision inspector
         │   └── branch_helper.sh             # Feature branch, diff, gitignore & scratchpad helper
         └── references/

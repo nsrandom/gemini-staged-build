@@ -10,7 +10,7 @@ All notable changes to the `staged-build` plugin will be documented in this file
   - **Post-Feature Comprehensive Mode:** Evaluates full end-to-end token consumption, wall-clock latency, tool call distributions, subagent handoff compliance, and compares multi-stage YOLO mode against single-stage execution.
   - **Mid-Feature Diagnostic Mode:** Enables users to inspect pipeline performance halfway through active feature development (e.g. while on Stage 5 of 20) to detect runaway turn counts (>30 turns), excessive file-reading overhead (`view_file` tax), and retry loops.
 - **Standardized Reporting Artifacts:** Generates `specs/<feature>/tokens_efficiency_report.md` (human-readable benchmark report) and `tokens_efficiency_report.json` (machine-readable structured telemetry for cross-feature meta-analysis).
-- **Zero-Dependency CLI Script (`scripts/analyze_tokens.py`):** Standalone Python standard-library script providing robust subagent role classification, cumulative context growth calculation, and bounded terminal summaries ($\le 250$ tokens).
+- **Zero-Dependency CLI Script (`skills/staged-build/scripts/analyze_tokens.py`):** Standalone Python standard-library script providing robust subagent role classification, cumulative context growth calculation, and bounded terminal summaries ($\le 250$ tokens).
 - **Proactive Orchestrator Suggestion Triggers:**
   - **Feature Completion Trigger:** The Root Orchestrator automatically suggests running `stage analyze_tokens` upon completion of all planned stages or `stage cleanup`.
   - **Mid-Feature Watchdog Trigger:** The orchestrator proactively alerts and recommends `stage analyze_tokens` if any stage exceeds 15 minutes or 2 retry loops.

@@ -124,7 +124,7 @@ Subagents return explicit verdict tokens on their final line:
 
 ## 6. Token Efficiency & Telemetry Protocol (`stage analyze_tokens`)
 
-- **Telemetry Tracking:** Token usage, wall-clock latency, and tool invocation distribution are extracted from local transcripts via `scripts/analyze_tokens.py`.
+- **Telemetry Tracking:** Token usage, wall-clock latency, and tool invocation distribution are extracted from local transcripts via `skills/staged-build/scripts/analyze_tokens.py`.
 - **Proactive Suggestion Invariants:**
   - **Feature Completion Trigger:** Whenever all stages in `STATE.md` are marked `done`, or immediately upon concluding `stage cleanup`, the Root Orchestrator MUST conclude with:
     > *"Feature complete! To inspect token consumption, latency, and subagent efficiency, run: `stage analyze_tokens`."*

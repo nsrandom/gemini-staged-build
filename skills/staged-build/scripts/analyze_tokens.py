@@ -38,14 +38,16 @@ def parse_iso(ts_str: str) -> datetime | None:
         return None
 
 def resolve_plugin_version() -> str:
-    """Reads version from plugin.json in the staged-build plugin root."""
+    """Reads version from plugin.json by walking up parent directories."""
     try:
-        plugin_root = Path(__file__).resolve().parent.parent
-        plugin_json = plugin_root / "plugin.json"
-        if plugin_json.exists():
-            with open(plugin_json, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                return data.get("version", "1.5.0")
+        curr = Path(__file__).resolve().parent
+        for _ in range(5):
+            plugin_json = curr / "plugin.json"
+            if plugin_json.exists():
+                with open(plugin_json, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    return data.get("version", "1.5.0")
+            curr = curr.parent
     except Exception:
         pass
     return "1.5.0"
