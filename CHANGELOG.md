@@ -2,6 +2,31 @@
 
 All notable changes to the `staged-build` plugin will be documented in this file.
 
+## [1.6.0] - 2026-09-08
+
+### Implementer Turn Ceilings & Checkpoint Relay Protocol
+- **Strict 25-Turn Ceiling (Hard Max 30):** Enforced a strict turn budget on `implementer` to eliminate runaway sessions that previously accumulated massive test output scrollbacks (up to 86 turns and 3.93M tokens per session).
+- **Work-In-Progress (WIP) Checkpoint File (`stages/NN-slug.wip.md`):** If criteria remain incomplete or edit/test cycles repeat at Turn 20, the implementer stops thrashing, writes current progress, modified files, and remaining blockers to `NN-slug.wip.md`, and halts with `STATUS: RELAY_REQUIRED`.
+- **Ephemeral Stage Runner Relay Spawning:** `stage-runner` detects `STATUS: RELAY_REQUIRED`, kills the bloated subagent conversation, and spawns a fresh `implementer` subagent with clean-slate context passing ONLY `NN-slug.md`, `NN-slug.wip.md`, and workspace disk state, resuming with ~3k tokens of context instead of 100k+.
+
+### Reconciled & Role-Specific Return Payload Limits
+- **Reconciled Contradictory Limits:** Eliminated conflicting token bounds across rules, docs, and code:
+  - `implementer`: $\le 350$ tokens structured YAML (`STATUS`, `FILES_MODIFIED`, `DECISION_IDS`, `SUMMARY`).
+  - `stage-architect`: $\le 350$ tokens structured YAML (`STATUS`, `STAGE_FILES_WRITTEN`, `ACCEPTANCE_CRITERIA_COUNT`, `VERIFICATION_COMMAND`, `SUMMARY`).
+  - `verifier`: $\le 300$ tokens concise checklist summary & findings.
+  - `stage-runner`: $\le 800$ tokens structured stage completion summary.
+- **Verifier Log Offloading:** Prohibited dumping full command stdout/stderr into verifier return messages; mandated writing full test runner and command execution logs to `specs/<feature>/stages/NN-slug.verification.log`.
+- **Role-Aware Telemetry Analyzer (`scripts/analyze_tokens.py`):** Replaced flat 250-token threshold with exact role-specific limits in telemetry breakdowns and invariant compliance audits.
+
+### Stage-Boundary Context Reset in YOLO Mode
+- **Per-Stage Isolation:** Mandated that the Root Orchestrator reset its active conversational context between stages in unattended `stage yolo` mode.
+- **Lean State Reload:** Reinitializes context between stages with ONLY `SESSION_STATE.json`, `STATE.md`, `DECISIONS.md`, and the previous stage report summary (`NN-slug.report.md`), eliminating the 100+ turn, 10-million-token accumulation trap.
+
+### Unified Feature `architecture.md` Synthesis
+- **Permanent System Reference:** At the conclusion of `stage cleanup`, the cleanup agent automatically synthesizes `specs/<feature>/architecture.md`.
+- **Token-Efficient Single-Pass Generation:** Synthesizes directly from verified disk metadata (`DECISIONS.md`, `stages/*.report.md` summaries, `SESSION_STATE.json`) without re-reading source code.
+- **Standardized Cheat-Sheet Schema ($\le 1,000\text{--}1,500$ tokens):** Covers Executive Summary & Entrypoints, Module & Directory Map, Public API/CLI Contracts/JSON Schemas, Key Invariants & Data Flow, Configuration Keys & Defaults, and Verification/Test Commands. Eliminates the "exploration tax" for downstream features and maintenance sessions.
+
 ## [1.5.0] - 2026-09-06
 
 ### Token Efficiency & Telemetry Analytics (`stage analyze_tokens`)

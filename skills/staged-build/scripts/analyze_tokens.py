@@ -7,7 +7,7 @@ Parses local conversation transcripts in ~/.gemini/antigravity/brain/ to compute
 - Tool output tokens ingested
 - Wall-clock execution time and latency per stage and subagent
 - Tool invocation distribution and "view_file tax"
-- Subagent return payload compliance (<= 250 tokens)
+- Subagent return payload compliance (role-aware: implementer <= 350, stage-architect <= 350, verifier <= 300, stage-runner <= 800 tokens)
 - Mid-feature diagnostic alerts vs post-completion benchmark reports
 """
 
@@ -20,6 +20,17 @@ import subprocess
 from pathlib import Path
 from datetime import datetime, timezone
 from collections import defaultdict
+
+ROLE_PAYLOAD_LIMITS = {
+    "implementer": 350,
+    "stage-architect": 350,
+    "verifier": 300,
+    "stage-runner": 800,
+}
+DEFAULT_PAYLOAD_LIMIT = 1000
+
+def get_role_payload_limit(role: str) -> int:
+    return ROLE_PAYLOAD_LIMITS.get(role, DEFAULT_PAYLOAD_LIMIT)
 
 def estimate_tokens(text: str) -> int:
     """Standard token estimation (~4 characters per token)."""
@@ -46,11 +57,11 @@ def resolve_plugin_version() -> str:
             if plugin_json.exists():
                 with open(plugin_json, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                    return data.get("version", "1.5.0")
+                    return data.get("version", "1.6.0")
             curr = curr.parent
     except Exception:
         pass
-    return "1.5.0"
+    return "1.6.0"
 
 def auto_detect_feature(workspace: Path) -> str | None:
     """Detects active feature from specs/*/STATE.md or git branch."""
@@ -258,6 +269,7 @@ def analyze_transcript(conv_dir: Path, workspace: Path, feature: str) -> dict | 
         accumulated_chars += step_chars
 
     final_payload_tokens = estimate_tokens(final_model_response)
+    role_limit = get_role_payload_limit(role)
 
     return {
         "conversation_id": conv_id,
@@ -275,6 +287,8 @@ def analyze_transcript(conv_dir: Path, workspace: Path, feature: str) -> dict | 
         "cumulative_input_tokens": cumulative_input_tokens,
         "total_estimated_tokens": (prompt_tokens + thinking_tokens + output_tokens + tool_output_tokens),
         "final_payload_tokens": final_payload_tokens,
+        "payload_limit": role_limit,
+        "payload_compliant": (final_payload_tokens <= role_limit),
         "verdict": verdict,
         "tool_calls_count": dict(tool_calls_count),
     }
@@ -377,7 +391,7 @@ def generate_markdown_report(feature: str,
     # Subagent Breakdown
     md.append("\n---")
     md.append("\n## 5. Subagent Role Telemetry Breakdown\n")
-    md.append("| Role | Count | Avg Turns | Avg Duration (s) | Avg Prompt Tok | Avg Thinking Tok | Avg Output Tok | Avg Cumul. Input | Return Payload >250 Tok |")
+    md.append("| Role | Count | Avg Turns | Avg Duration (s) | Avg Prompt Tok | Avg Thinking Tok | Avg Output Tok | Avg Cumul. Input | Payload Compliance |")
     md.append("|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|")
     for role, group in sorted(by_role.items()):
         cnt = len(group)
@@ -387,9 +401,11 @@ def generate_markdown_report(feature: str,
         avg_think = sum(g["thinking_tokens"] for g in group) / cnt
         avg_out = sum(g["output_tokens"] for g in group) / cnt
         avg_cum_in = sum(g["cumulative_input_tokens"] for g in group) / cnt
-        over_250 = sum(1 for g in group if g["final_payload_tokens"] > 250)
-        pct_over = (over_250 / cnt) * 100
-        md.append(f"| **`{role}`** | {cnt} | {avg_turns:.1f} | {avg_dur:.1f}s | {avg_prompt:,.0f} | {avg_think:,.0f} | {avg_out:,.0f} | **{avg_cum_in:,.0f}** | **{over_250}/{cnt} ({pct_over:.0f}%)** |")
+        role_limit = get_role_payload_limit(role)
+        over_lim = sum(1 for g in group if g["final_payload_tokens"] > role_limit)
+        pct_over = (over_lim / cnt) * 100
+        compliance_str = f"**{over_lim}/{cnt} ({pct_over:.0f}%) >{role_limit} tok**" if over_lim > 0 else f"**All compliant (\\le {role_limit} tok)**"
+        md.append(f"| **`{role}`** | {cnt} | {avg_turns:.1f} | {avg_dur:.1f}s | {avg_prompt:,.0f} | {avg_think:,.0f} | {avg_out:,.0f} | **{avg_cum_in:,.0f}** | {compliance_str} |")
 
     # Per Stage Matrix
     md.append("\n---")
@@ -445,10 +461,21 @@ def generate_markdown_report(feature: str,
     md.append("\n## 8. Invariant Compliance Audit\n")
     md.append("| Invariant | Target Specification | Actual Performance | Compliance Status |")
     md.append("|:---|:---|:---|:---:|")
-    impl_group = by_role.get("implementer", [])
-    over_cnt = sum(1 for i in impl_group if i["final_payload_tokens"] > 250)
-    impl_status = "**PASS**" if (impl_group and over_cnt == 0) else f"**VIOLATED ({over_cnt}/{len(impl_group)} >250 tok)**"
-    md.append(f"| **Subagent Return Payloads** | $\\le 250$ tokens compact payload | Implementers exceeded in {over_cnt} of {len(impl_group)} instances | {impl_status} |")
+    for target_role, limit in [("implementer", 350), ("stage-architect", 350), ("verifier", 300), ("stage-runner", 800)]:
+        r_group = by_role.get(target_role, [])
+        if r_group:
+            over_cnt = sum(1 for item in r_group if item["final_payload_tokens"] > limit)
+            r_status = "**PASS**" if over_cnt == 0 else f"**VIOLATED ({over_cnt}/{len(r_group)} >{limit} tok)**"
+            perf_note = f"All {len(r_group)} compliant" if over_cnt == 0 else f"Exceeded in {over_cnt} of {len(r_group)} instances"
+            md.append(f"| **`{target_role}` Return Payload** | $\\le {limit}$ tokens compact payload | {perf_note} | {r_status} |")
+        else:
+            md.append(f"| **`{target_role}` Return Payload** | $\\le {limit}$ tokens compact payload | (No subagents recorded) | **N/A** |")
+
+    stages_dir = workspace / "specs" / feature / "stages"
+    v_logs = list(stages_dir.glob("*.verification.log")) if stages_dir.exists() else []
+    verif_log_status = "**PASS**" if (not by_role.get("verifier") or v_logs) else "**NO LOGS FOUND**"
+    log_note = f"{len(v_logs)} log files found on disk" if v_logs else ("No verifier subagents run" if not by_role.get("verifier") else "No log files found")
+    md.append(f"| **Verifier Log Offloading** | Output written to `stages/*.verification.log` | {log_note} | {verif_log_status} |")
     md.append("| **Verifier Independence** | Verifier receives ONLY contract + diff | Contract and diff verified; no implementation detail leakage | **PASS** |")
     md.append("| **Ephemeral Scratchpad Clean** | `specs/**/scratchpad/` absent at completion | Verified clean on disk | **PASS** |")
 

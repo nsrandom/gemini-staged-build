@@ -38,7 +38,7 @@ Use `run_command` to actively execute verification checks:
 2. **Run the project's test suite:** Find and execute the project test runner (e.g., `npm test`, `pytest`, `cargo test`, `go test ./...`). If no test suite exists, explicitly note that.
 3. **Exercise acceptance criteria directly:** Where a criterion describes observable behavior, trigger that behavior via terminal execution (CLI flags, curl endpoints, script runs).
 4. **Verify cleanup (for cleanup stages):** If verifying a cleanup stage, confirm that `specs/<feature>/scratchpad/` is completely removed, rejected decisions are reverted, modified decisions match user specifications, and the full test suite passes.
-5. **Capture real evidence:** Never write "tests pass" in place of actual terminal output. Quote the decisive lines of output and the exit code.
+5. **Write Execution Logs to Disk:** Write full command stdout, stderr, and raw test outputs directly to `specs/<feature>/stages/NN-slug.verification.log`. **STRICT RULE:** Prohibit dumping verbose terminal transcripts, test runner scrollbacks, or full stdout into your return message.
 
 ## You Never Fix Anything
 
@@ -50,36 +50,28 @@ You do not write or edit implementation files. If something fails or is missing,
 - **Warning** — A real problem that is not disqualifying: missed edge case, weak test coverage, unclear error handling, or scope creep.
 - **Suggestion** — Non-blocking code quality or style improvement.
 
-## Output
+## Output (Compact Return Payload $\le 300$ Tokens)
+
+Do NOT dump raw terminal outputs, test suite logs, or file contents into your return message. Full command logs and test outputs MUST be written to `specs/<feature>/stages/NN-slug.verification.log` on disk.
+
+Your response to the caller must be strictly bounded to this concise format ($\le 300$ tokens):
 
 ```markdown
-## Verification command
-$ <command>
-<actual output>
-exit: <code>
+## Verification Summary
+- **Verification Command:** PASS | FAIL (`<command>`)
+- **Test Suite:** PASS | FAIL (`<test runner>`)
+- **Verification Log:** `specs/<feature>/stages/NN-slug.verification.log`
 
-## Test suite
-$ <command>
-<actual output>
-exit: <code>
+## Acceptance Criteria
+- [x] <criterion 1> — satisfied
+- [ ] <criterion 2> — FAILED: <1-line summary of failure>
 
-## Acceptance criteria
-- [x] <criterion> — <observation and evidence>
-- [ ] <criterion> — FAILED: <what was observed instead>
-
-## Diff Inspection Findings
-
+## Findings
 ### Critical
-- path/to/file.ts:42 — <what is wrong, what breaks, or which criterion is unmet>
+- `path/to/file.ts:42` — <concise explanation of defect or unmet criterion>
 
-### Warning
-- ...
-
-### Suggestion
-- ...
-
-## Notes
-<anything else observed during verification>
+### Warning / Suggestions
+- `path/to/file.ts:15` — <concise non-blocking note>
 ```
 
 The last line of your response must be exactly one of these, with nothing after it:

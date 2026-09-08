@@ -82,7 +82,7 @@ This is where you go deep. The implementer follows it directly, so ambiguity her
 ## Disk-Offloaded Reporting & Compact Return Payload
 
 1. **Write Full Specs to Disk:** Directly create `specs/<feature>/stages/NN-slug.md` and `NN-slug.detail.md` on disk. Do not dump complete specifications or line-by-line task plans into the return message.
-2. **Compact Completion Payload ($\le 500$ Tokens):** Your final response returned to the caller must be strictly bounded to a compact summary:
+2. **Compact Completion Payload ($\le 350$ Tokens):** Your final response returned to the caller must be strictly bounded to a compact summary:
 
 ```yaml
 STATUS: SPECIFIED | SPLIT | CONFLICT
@@ -91,15 +91,10 @@ STAGE_FILES_WRITTEN:
   - specs/<feature>/stages/NN-slug.detail.md
 ACCEPTANCE_CRITERIA_COUNT: <N>
 VERIFICATION_COMMAND: "<command>"
-LARGE_STEPS:
-  - Step N: <title>
-DECISIONS_LOGGED:
-  - ID: D01
-    Tier: 1 | 2
-    Call: <title>
-    File: path/to/file:line
-SUMMARY: 1-4 sentence overview of the stage plan.
+DECISION_IDS: [D01 (Tier 1)]
+SUMMARY: 1-2 sentence overview of the stage plan.
 ```
 
 If the stage was split, output `STATUS: SPLIT` with the list of created sub-stages.
 If a conflict occurred, output `STATUS: CONFLICT` and state what contradicts the codebase in `SUMMARY`.
+If no autonomous decisions were logged, set `DECISION_IDS: []`.

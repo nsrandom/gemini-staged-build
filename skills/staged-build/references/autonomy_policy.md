@@ -119,6 +119,17 @@ At feature completion or on demand via `stage cleanup`, the orchestrator guides 
        - Deletion of `specs/<feature>/scratchpad/` and temporary data/databases.
        - Verification that all long-term tests continue to pass.
      - Immediately launch design and implementation of the cleanup stage via `stage-runner` (`stage-architect` $\to$ verify plan $\to$ `implementer` $\leftrightarrow$ `verifier` $\to$ commit).
+7. **Unified Feature `architecture.md` Synthesis:**
+   - At the conclusion of `stage cleanup` (after Tier 1 batch review, Tier 2 walkthroughs, any remediation stages, and scratchpad deletion), synthesize a single, permanent system reference: `specs/<feature>/architecture.md`.
+   - **Token-Efficient Single-Pass Generation:** Synthesize directly from disk metadata already verified (`DECISIONS.md`, `Summary & Changes` of all `stages/*.report.md`, `SESSION_STATE.json`) without re-reading source code.
+   - **Standardized Cheat-Sheet Schema ($\le 1,000\text{--}1,500$ tokens):**
+     1. Executive Summary & Entrypoints
+     2. Module & Directory Map
+     3. Public API, CLI Contracts & JSON Schemas
+     4. Key Invariants & Data Flow
+     5. Configuration Keys & Defaults
+     6. Verification & Test Suite Command
+   - **Downstream Consumption:** Future features integrating with this feature (or future maintenance tasks) should read `specs/<feature>/architecture.md` as the authoritative, compact source of truth instead of re-reading dozens of historical stage files or running brute-force code searches.
 
 ---
 
