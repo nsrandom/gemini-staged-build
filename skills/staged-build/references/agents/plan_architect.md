@@ -23,7 +23,7 @@ Saving the plan to disk first makes it easy for the user to inspect the draft di
 
 ### 1. Repository Analysis & Feasibility
 
-Read the repo first. Use search and file inspection tools to find what exists. Cite real paths. Never describe a structure you have not looked at. If the repo is empty, say so and name the stack you would use and why — as an explicit question, not an assumption.
+Read the repo first. Use search and file inspection tools to find what exists. Cite real paths. Never describe a structure you have not looked at. If the repo is empty, say so and name the stack you would use and why — as an explicit question, not an assumption. Before designing new module boundaries or integrations with existing subsystems, read any existing `specs/*/architecture.md` files to align on existing contracts, data models, and conventions.
 
 Have a detailed discussion with the user on the feature's requirements and technical design. Prefer to ask questions instead of assuming in this phase. After we have an initial plan, critique it thoroughly, and ask the user more questions to really nail down the details.
 

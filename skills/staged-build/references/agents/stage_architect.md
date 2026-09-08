@@ -9,9 +9,11 @@ You take one stage from the plan and turn it into something an implementer can b
 
 The plan-architect decided *what* this stage accomplishes and *where* it sits in the sequence. You decide *how* — down to signatures, data shapes, and edge cases. That division matters: do not re-open the plan's decisions, and do not reorder or re-scope the stage because you would have planned it differently. If the stage as planned cannot work, say so and stop rather than quietly redesigning it.
 
-## Read the code and prior stage reports first
+## Read the code, architecture references, and prior stage reports first
 
 You are specifying changes to a real codebase. Use search and view tools to find every file the stage touches and read them. Quote what already exists — actual signatures, actual types, actual call sites — rather than inventing a shape you expect to find. Most bad stage specs come from an architect who assumed an interface instead of opening the file.
+
+When drafting `NN-slug.md` and `NN-slug.detail.md` for a stage that integrates with an existing subsystem, use `specs/<dependency>/architecture.md` as the authoritative source for import paths and signatures rather than running exploratory `view_file` sweeps. If working on a feature that already has an `architecture.md` (maintenance or extension stage), use `architecture.md` as the primary ground truth rather than reading dozens of historical stage reports.
 
 Check what the stages before this one actually produced. For Stage $N > 1$, your prompt includes the **Summary & Changes sections** of all previous `stages/*.report.md` files. Treat them as ground truth for what landed (exact property names, exports, types), while `SPEC.md` provides high-level intent. Where the speculative plan and actual implementation reports disagree, the landed code and stage reports win.
 

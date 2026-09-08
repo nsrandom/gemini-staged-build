@@ -61,7 +61,7 @@ specs/<feature>/
   STATE.md                        # Stage tracker table and branch binding
   DECISIONS.md                    # Log of minor decisions taken in next and yolo modes (Tier 1 & Tier 2)
   SESSION_STATE.json              # Runtime environment state, test shortcuts, sandbox preferences
-  architecture.md                 # Unified system reference & cheat-sheet synthesized at cleanup
+  architecture.md                 # cleanup-phase: Permanent system reference, contracts, invariants, and config
   tokens_efficiency_report.md     # Standardized token usage and efficiency benchmark report
   tokens_efficiency_report.json   # Structured telemetry dataset for cross-feature comparisons
   scratchpad/                     # One-off verification code, tests, mock DBs (gitignored, deleted later)
@@ -134,7 +134,7 @@ flowchart TD
     UserReview -- "User Approves" --> Stop([Lock plan & STOP])
 ```
 
-1. **Draft & Save to Disk:** Invoke `plan-architect` on model `flash` with the goal and instruction: `"Analyze codebase, assess feasibility, isolate unknowns into Stage 01, save draft plan directly to specs/<feature>/SPEC.md and specs/<feature>/STATE.md, initialize specs/<feature>/DECISIONS.md and specs/<feature>/SESSION_STATE.json, and ensure specs/**/scratchpad/ is in .gitignore."`
+1. **Context Discovery & Draft to Disk:** Run context resolver and inspect `ctx["completed_architectures"]`. If completed subsystem architectures exist (`specs/*/architecture.md`), pass their contents to `plan-architect` so high-level feature planning aligns with established subsystem contracts, public APIs, and conventions. Invoke `plan-architect` on model `flash` with the goal, relevant architecture context, and instruction: `"Analyze codebase, assess feasibility, isolate unknowns into Stage 01, save draft plan directly to specs/<feature>/SPEC.md and specs/<feature>/STATE.md, initialize specs/<feature>/DECISIONS.md and specs/<feature>/SESSION_STATE.json, and ensure specs/**/scratchpad/ is in .gitignore."`
 2. **User Presentation & Alignment:** Present the saved plan to the user with clickable links to `specs/<feature>/SPEC.md` and `specs/<feature>/STATE.md`.
    - Use `ask_question` for discrete choices, highlighting defaults.
    - Solicit additions, removals, renames, or reordering of stages.
@@ -173,16 +173,19 @@ flowchart TD
      - If it does not exist, create and check out the branch: `git checkout -b <feature>`.
    - Record the branch and environment parameters (virtualenv paths, sandbox settings, test runners) in `specs/<feature>/SESSION_STATE.json` and `STATE.md`.
    - Ensure `specs/**/scratchpad/` is added to `.gitignore`.
-3. **Delegate to `stage-runner`:**
+3. **Delegate to `stage-runner` & Architecture Context-Bridging:**
    - The Root Orchestrator invokes `stage-runner` (model `flash`, `enable_subagent_tools: true`, `enable_write_tools: true`).
-   - Pass `SPEC.md`, `STATE.md`, the stage's row, and the **Summary & Changes sections** of all previous `stages/*.report.md` files (stripping raw execution logs).
+   - Inspect `ctx["completed_architectures"]`:
+     - **Cross-Feature Integration:** If the stage depends on or integrates with an existing completed subsystem, pass the verbatim text of `specs/<dependency>/architecture.md`.
+     - **Feature Maintenance / Post-Completion Stages:** If modifying an already-completed feature where `architecture.md` exists (`ctx["has_architecture"] = True`), pass `specs/<feature>/architecture.md` to `stage-runner` as the primary ground truth instead of passing dozens of historical `stages/*.report.md` files.
+     - Otherwise, pass `SPEC.md`, `STATE.md`, the stage's row, and the **Summary & Changes sections** of all previous `stages/*.report.md` files (stripping raw execution logs).
 4. **`stage-runner` Lifecycle Execution:**
-   - **Specification:** `stage-runner` invokes `stage-architect` (model `flash`).
+   - **Specification:** `stage-runner` invokes `stage-architect` (model `flash`), forwarding any supplied `architecture.md` documents.
      - `stage-architect` ensures comprehensive test coverage in the project's main tests directory and isolates temporary checks to `specs/<feature>/scratchpad/`.
      - Writes `specs/<feature>/stages/NN-slug.md` (contract) and `NN-slug.detail.md` (implementation spec) directly to disk.
      - Returns a **compact structured summary ($\le 350$ tokens)** to `stage-runner`.
    - **Plan Verification (Non-YOLO):** `stage-runner` presents the stage plan to the user: links to `NN-slug.md` and `NN-slug.detail.md`, summary of acceptance criteria, test coverage, and verification command. Solicits user approval.
-   - **Implementation & Checkpoint Relay:** `stage-runner` invokes `implementer` (model `flash`).
+   - **Implementation & Checkpoint Relay:** `stage-runner` invokes `implementer` (model `flash`), forwarding any relevant dependency `architecture.md` documents.
      - `implementer` operates within a strict turn ceiling of **25 planner turns** (hard max 30).
      - At Turn 20, if edit/test cycles repeat or criteria are unfinished, `implementer` writes `specs/<feature>/stages/NN-slug.wip.md` and terminates with `STATUS: RELAY_REQUIRED`.
      - `stage-runner` detects `STATUS: RELAY_REQUIRED`, terminates the previous implementer, and invokes a fresh `implementer` subagent (clean slate context) receiving ONLY: `NN-slug.md`, `NN-slug.wip.md`, and current disk state.
@@ -324,14 +327,17 @@ flowchart TD
        - Commit: `git commit -m "<feature>-stage-<num>: cleanup and decision remediation"`.
 7. **Unified Feature `architecture.md` Synthesis:**
    - At the conclusion of `stage cleanup` (after all decisions are confirmed/remediated and scratchpad is deleted), synthesize a single, permanent system reference: `specs/<feature>/architecture.md`.
-   - **Token-Efficient Single-Pass Generation:** Synthesize directly from disk metadata already verified (`DECISIONS.md`, `Summary & Changes` of all `stages/*.report.md`, `SESSION_STATE.json`) without re-reading source code.
-   - **Standardized Cheat-Sheet Schema ($\le 1,000\text{--}1,500$ tokens):**
-     - **1. Executive Summary & Entrypoints:** 1 paragraph on purpose and primary interfaces.
-     - **2. Module & Directory Map:** Landed files with 1-line descriptions of responsibilities.
-     - **3. Public API, CLI Contracts & JSON Schemas:** Exact exported functions, types, CLI commands, and flags.
-     - **4. Key Invariants & Data Flow:** Verified pipeline order, isolation boundaries, and constraints.
-     - **5. Configuration Keys & Defaults:** Exhaustive list of environment variables, config parameters, and single-named constants from `DECISIONS.md`.
-     - **6. Verification & Test Suite Command:** The authoritative test runner command and key fixture paths.
+   - **Token-Efficient Single-Pass Synthesis:** The cleanup agent must synthesize `architecture.md` directly from on-disk metadata without re-reading all project source files:
+     1. `specs/<feature>/DECISIONS.md` (confirmed invariants, constants, config keys)
+     2. `Summary & Changes` sections of all `specs/<feature>/stages/*.report.md`
+     3. `specs/<feature>/SESSION_STATE.json` (runtime environment, test commands)
+   - **Standardized Schema ($\le 1,000\text{--}1,500$ tokens):**
+     - **1. Executive Summary & Purpose:** One paragraph explaining what the subsystem does and its primary entrypoints.
+     - **2. Directory & Module Layout:** Tree mapping landed files with 1-line responsibility summaries.
+     - **3. Public API, CLI Contracts & Wire Schemas:** Exact Python functions/classes, CLI commands/flags, and JSON schemas.
+     - **4. Key Architectural Invariants & Data Flow:** Linear pipeline diagram, structural constraints, and isolation rules.
+     - **5. Configuration Keys & Defaults:** Exhaustive table of environment variables, config parameters, and named constants from `DECISIONS.md`.
+     - **6. Verification & Test Suite Command:** The authoritative test runner command and fixture paths.
    - **Downstream Consumption:** Future features integrating with this feature (or future maintenance tasks) should read `specs/<feature>/architecture.md` as the authoritative, compact source of truth instead of re-reading dozens of historical stage files or running brute-force code searches.
    - Stop.
 
@@ -340,7 +346,7 @@ flowchart TD
 ### 5. `stage status`
 
 1. Run context resolver script: `python3 .agents/plugins/staged-build/skills/staged-build/scripts/context_resolver.py`.
-2. Display feature name, current VCS branch, `STATE.md` table, runtime session state (`SESSION_STATE.json`), decision summary (total, Tier 1, Tier 2, confirmed/unconfirmed/rejected/modified/deferred), scratchpad status, and the latest stage report summary.
+2. Display feature name, current VCS branch, `STATE.md` table, runtime session state (`SESSION_STATE.json`), decision summary (total, Tier 1, Tier 2, confirmed/unconfirmed/rejected/modified/deferred), scratchpad status, completed subsystem architectures (`completed_architectures`), and the latest stage report summary.
 
 ---
 

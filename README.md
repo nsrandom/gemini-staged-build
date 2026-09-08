@@ -166,7 +166,7 @@ Reviews decisions with minimum token overhead, executes cleanup, and synthesizes
 ```text
 stage status
 ```
-Displays current plan progress, active branch, session state (`SESSION_STATE.json`), decision summary (Tier 1 & Tier 2 counts), scratchpad status, and the most recent stage report.
+Displays current plan progress, active branch, session state (`SESSION_STATE.json`), decision summary (Tier 1 & Tier 2 counts), scratchpad status, completed subsystem architectures (`completed_architectures`), and the most recent stage report.
 
 ### 6. Redo Active Stage
 ```text

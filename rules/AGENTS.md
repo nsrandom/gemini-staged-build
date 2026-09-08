@@ -31,6 +31,9 @@ You are the orchestrator. You coordinate subagents, interact with the user, and 
   2. `STATE.md`
   3. The **Summary & Changes sections** of all previous `stages/*.report.md` files (stripping out raw terminal/vitest execution logs).
   *Rationale:* `SPEC.md` is speculative; previous stage reports provide the ground truth of what actually landed (exact property names, exports, types) for ~300–500 tokens, preventing inter-stage hallucination and interface drift without bloating context.
+- **Architecture Context-Bridging Invariants:**
+  - **Cross-Feature Integration:** When delegating to `plan-architect`, `stage-architect`, or `implementer` on a stage that depends on or integrates with an existing completed subsystem, the orchestrator MUST inline the verbatim text of `specs/<dependency>/architecture.md` into the prompt.
+  - **Feature Maintenance / Post-Completion Stages:** When adding a stage or modifying an already-completed feature where `architecture.md` exists, pass `specs/<feature>/architecture.md` to `stage-architect` instead of passing dozens of historical `stages/*.report.md` files.
 - **Preserve Verifier Scope & Independence:** The `verifier` must receive ONLY the stage acceptance contract (`NN-slug.md`) and the stage diff (`git diff <base_commit>`). Never pass `NN-slug.detail.md`, the implementer's internal thoughts, or the decision log. The verifier exists to independently inspect diff correctness and test runtime behavior; feeding it internal plans invalidates verification.
 - **Subagent Tool Permissions for Verifier:** When defining or spawning `verifier` via `define_subagent`, `enable_write_tools: true` MUST be set so that `run_command` is available in its environment (otherwise verification and test commands fail with `exit: 127`).
 - **Pass Role Models:** Always resolve the role's model tier from `pipeline.json` (or `.agents/pipeline.json` override) and pass it when invoking subagents (`pro`, `flash`, `flash_lite`, `inherit`).
@@ -47,9 +50,9 @@ You are the orchestrator. You coordinate subagents, interact with the user, and 
      - Tradeoffs, alternatives, and implications
      The user may: confirm, reject, defer, ask a follow-up question, or suggest a modification. Deferred decisions are asked at the end of the loop.
   5. **Remediation:** If any decisions were rejected or modified, or if `scratchpad/` exists, create a new cleanup stage in `STATE.md`, specify details for remediation and deletion of temporary data, and immediately execute design and implementation of the cleanup stage via `stage-runner`.
-  6. **Unified Feature `architecture.md` Synthesis:** At the conclusion of `stage cleanup` (after Tier 1 batch review, Tier 2 walkthroughs, any remediation stages, and scratchpad deletion), the cleanup agent MUST synthesize a single, permanent system reference: `specs/<feature>/architecture.md`.
+  6. **Unified Feature `architecture.md` Synthesis:** At the conclusion of `stage cleanup` (after Tier 1 batch review, Tier 2 walkthroughs, any remediation stages, and scratchpad deletion), the cleanup agent MUST generate `specs/<feature>/architecture.md` as the final step before marking the feature fully complete.
      - **Token-Efficient Single-Pass Generation:** Synthesize directly from disk metadata already verified (`DECISIONS.md`, `Summary & Changes` of all `stages/*.report.md`, `SESSION_STATE.json`) without re-reading source code.
-     - **Cheat-Sheet Schema ($\le 1,000\text{--}1,500$ tokens):** 1. Executive Summary & Entrypoints, 2. Module & Directory Map, 3. Public API, CLI Contracts & JSON Schemas, 4. Key Invariants & Data Flow, 5. Configuration Keys & Defaults, 6. Verification & Test Suite Command.
+     - **Cheat-Sheet Schema ($\le 1,000\text{--}1,500$ tokens):** 1. Executive Summary & Purpose, 2. Directory & Module Layout, 3. Public API, CLI Contracts & Wire Schemas, 4. Key Architectural Invariants & Data Flow, 5. Configuration Keys & Defaults, 6. Verification & Test Suite Command.
      - **Downstream Consumption:** Future features and maintenance sessions read `architecture.md` as the authoritative source of truth instead of re-reading historical stage files or running brute-force code searches.
 - **Token Efficiency & Telemetry Suggestion Invariants:**
   - **Feature Completion Trigger:** When all stages in `STATE.md` are marked `done`, or immediately upon concluding `stage cleanup`, the Root Orchestrator MUST proactively conclude with:
@@ -64,11 +67,11 @@ All plan artifacts reside in `specs/<feature>/`:
 
 ```text
 specs/<feature>/
+  architecture.md                 # cleanup-phase: Permanent system reference, contracts, invariants, and config
   SPEC.md                         # plan-architect: Goal, context, approach, stages, non-goals
   STATE.md                        # plan-architect: Stage status table and branch metadata
   DECISIONS.md                    # orchestrator: Decision log for minor decisions (Tier 1 & Tier 2)
   SESSION_STATE.json              # orchestrator: Runtime environment state, test shortcuts, sandbox preferences
-  architecture.md                 # cleanup: Unified system reference & cheat-sheet (landed APIs, invariants, config)
   tokens_efficiency_report.md     # orchestrator: Standardized token usage and efficiency benchmark report
   tokens_efficiency_report.json   # orchestrator: Structured telemetry dataset for cross-feature comparisons
   scratchpad/                     # temporary one-off verification code, tests, mock DBs (gitignored, deleted later)

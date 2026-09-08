@@ -25,6 +25,8 @@ def resolve_context():
         "uncommitted_code": "(clean)",
         "features": [],
         "active_feature": None,
+        "completed_architectures": [],
+        "has_architecture": False,
         "state_content": None,
         "decisions_content": None,
         "pipeline_routing": {},
@@ -49,9 +51,18 @@ def resolve_context():
     if os.path.isdir("specs"):
         features = [d for d in os.listdir("specs") if os.path.isdir(os.path.join("specs", d))]
         ctx["features"] = sorted(features)
+        for feat in ctx["features"]:
+            arch_file = os.path.join("specs", feat, "architecture.md")
+            if os.path.exists(arch_file):
+                ctx["completed_architectures"].append(arch_file)
         if len(features) == 1:
             ctx["active_feature"] = features[0]
-            feature_dir = os.path.join("specs", features[0])
+        elif ctx.get("current_branch") in features:
+            ctx["active_feature"] = ctx["current_branch"]
+
+        if ctx["active_feature"]:
+            feature_dir = os.path.join("specs", ctx["active_feature"])
+            ctx["has_architecture"] = os.path.exists(os.path.join(feature_dir, "architecture.md"))
             state_file = os.path.join(feature_dir, "STATE.md")
             if os.path.exists(state_file):
                 with open(state_file, "r", encoding="utf-8") as f:
@@ -142,6 +153,8 @@ if __name__ == "__main__":
         print(f"Branch: {context['current_branch']}")
         print(f"Uncommitted Code (excl specs): {context['uncommitted_code']}")
         print(f"Features in specs/: {', '.join(context['features']) if context['features'] else '(none)'}")
+        arch_str = ", ".join(context.get("completed_architectures", []))
+        print(f"Architectures: {arch_str if arch_str else '(none)'}")
         if context.get("session_state"):
             ss = context["session_state"]
             print(f"Session State: Branch={ss.get('branch', 'n/a')}, BypassRequired={ss.get('sandbox_bypass_required', False)}")
