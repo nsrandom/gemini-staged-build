@@ -538,7 +538,13 @@ def main():
     parser = argparse.ArgumentParser(description="Staged-Build Token & Telemetry Analyzer")
     parser.add_argument("--feature", type=str, help="Feature slug name (e.g. podcast-service)")
     parser.add_argument("--workspace", type=Path, default=Path.cwd(), help="Path to project workspace")
-    parser.add_argument("--brain-dir", type=Path, default=Path.home() / ".gemini" / "antigravity" / "brain", help="Antigravity brain directory")
+    candidates = [
+        Path.home() / ".gemini" / "antigravity-cli" / "brain",
+        Path.home() / ".gemini" / "antigravity" / "brain",
+    ]
+    default_brain = next((p for p in candidates if p.exists() and any(p.iterdir())), candidates[0])
+
+    parser.add_argument("--brain-dir", type=Path, default=default_brain, help="Antigravity brain directory")
     parser.add_argument("--output-dir", type=Path, help="Directory to save output reports")
     args = parser.parse_args()
 
